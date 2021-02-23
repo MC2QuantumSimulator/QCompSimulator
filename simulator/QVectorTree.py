@@ -48,12 +48,12 @@ class QVectorTree:
         while s1.qsize() != 0:
             curr = s1.get()
 
-            # If current node has a left child
+            # If current node has a right child
             # push it onto the first stack
             if curr.children[1]:
                 s1.put(curr.children[1])
 
-            # If current node has a right child
+            # If current node has a left child
             # push it onto the first stack
             if curr.children[0]:
                 s1.put(curr.children[0])
