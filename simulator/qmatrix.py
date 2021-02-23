@@ -5,22 +5,19 @@ class qmatrix():
 	
 	class node():
 
-		def __init__(self, conns: list, weights: list, depth: int = 0): # list or multiple variables?
+		def __init__(self, conns: list, weights: list, depth: int = 0):
 			self.depth = depth
 			self.conns = conns
 			self.weights = weights
 
 		@classmethod
-		def merge(cls, node1, node2, node3, node4): # Add propagation of factors. Maybe accept a list instead of 4 args?
-			nodes = (node1, node2, node3, node4)
+		def merge(cls, nodes): # Add propagation of factors.
 			"""Merges four nodes into a single node of depth one larger"""
 			if all(node is None for node in nodes):
 				raise ValueError("All nodes to be merged are 'None', at most three 'None' allowed") # should we allow all None and return None here?
 			#if (all(node is not None for node in nodes) and (node1.depth != node2.depth)): # TODO: all not None should be equal
 			#	raise ValueError("Depth is not equal on nodes to be merged, {} != {}".format(node1.depth, node2.depth))
-			# TODO: Fix long lines below
-			return cls(nodes, (1 if node1 is not None else 0, 1 if node2 is not None else 0, 1 if node3 is not None else 0, 1 if node4 is not None else 0),
-			max(0 if node1 is None else node1.depth, 0 if node2 is None else node2.depth, 0 if node3 is None else node3.depth, 0 if node4 is None else node4.depth) + 1)
+			return cls(nodes, [1 if node is not None else 0 for node in nodes], max([0 if node is None else node.depth for node in nodes]) + 1)
 
 	def __init__(self, root: node, weight: complex = 1.0):
 		self.root = root
@@ -105,7 +102,7 @@ class qmatrix():
 			if all(node is None for node in nodes):
 				qbc = None
 			else:
-				qbc = qmatrix.node.merge(node1, node2, node3, node4)
+				qbc = qmatrix.node.merge(nodes)
 			q1.put(qbc)
 		root = q1.get()
 		return qmatrix(root)
