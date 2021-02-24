@@ -1,7 +1,7 @@
 from queue import Queue, LifoQueue
 
 
-class QVectorTree:
+class qvector:
     class VNode:
         def __init__(self, children, weights, depth):
             self.children = children
@@ -18,7 +18,7 @@ class QVectorTree:
         q = Queue(0)
 
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
-            node = QVectorTree.VNode((None, None), (weight0, weight1), 1)  # Create a leaf node from every pair.
+            node = qvector.VNode((None, None), (weight0, weight1), 1)  # Create a leaf node from every pair.
             q.put(node)
 
         while q.qsize() > 1:
@@ -26,12 +26,12 @@ class QVectorTree:
             child1 = q.get()
             depth = max(0 if child0 is None else child0.depth,
                         0 if child1 is None else child1.depth) + 1
-            new_node = QVectorTree.VNode((child0, child1), (1, 1), depth)
+            new_node = qvector.VNode((child0, child1), (1, 1), depth)
             q.put(new_node)
 
         node_tree = q.get()
 
-        return QVectorTree(node_tree, 1)
+        return qvector(node_tree, 1)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
@@ -75,6 +75,6 @@ def pairwise(iterable):
 
 # ---------can be removed - for testing purposes-------------
 if __name__ == '__main__':
-    tree = QVectorTree.to_tree([1, 2, 3, 4, 5, 6, 7, 8])
+    tree = qvector.to_tree([1, 2, 3, 4, 5, 6, 7, 8])
     vector = tree.to_vector()
     print(vector)
