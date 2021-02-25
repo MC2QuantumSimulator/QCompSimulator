@@ -2,7 +2,7 @@ from queue import Queue, LifoQueue
 
 
 class qvector:
-    class VNode:
+    class node:
         def __init__(self, children, weights, depth):
             self.children = children
             self.weights = weights
@@ -18,15 +18,15 @@ class qvector:
         q = Queue(0)
 
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
-            node = qvector.VNode((None, None), (weight0, weight1), 1)  # Create a leaf node from every pair.
+            node = qvector.node([None]*2, (weight0, weight1), 1)  # Create a leaf node from every pair.
             q.put(node)
 
         while q.qsize() > 1:
             child0 = q.get()
             child1 = q.get()
-            depth = max(0 if child0 is None else child0.depth,
-                        0 if child1 is None else child1.depth) + 1
-            new_node = qvector.VNode((child0, child1), (1, 1), depth)
+            children = (child0, child1)
+            depth = max(0 if child is None else child.depth for child in children) + 1
+            new_node = qvector.node(children, (1, 1), depth)
             q.put(new_node)
 
         node_tree = q.get()
