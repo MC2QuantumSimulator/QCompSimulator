@@ -3,14 +3,14 @@ from queue import Queue, LifoQueue
 
 class qvector:
     class node:
-        def __init__(self, children, weights, depth):
+        def __init__(self, children, weights):
             self.children = children
             self.weights = weights
-            self.depth = depth
 
-    def __init__(self, root_node, weight):
+    def __init__(self, root_node, weight, depth):
         self.root_node = root_node
         self.weight = weight
+        self.depth = depth
 
     @staticmethod
     def to_tree(vector_arr):
@@ -18,20 +18,21 @@ class qvector:
         q = Queue(0)
 
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
-            node = qvector.node([None]*2, (weight0, weight1), 1)  # Create a leaf node from every pair.
-            q.put(node)
+            node = qvector.node([None]*2, (weight0, weight1))  # Create a leaf node from every pair.
+            q.put((node, 0))
 
         while q.qsize() > 1:
             child0 = q.get()
             child1 = q.get()
-            children = (child0, child1)
-            depth = max(0 if child is None else child.depth for child in children) + 1
-            new_node = qvector.node(children, (1, 1), depth)
-            q.put(new_node)
+            children = (child0[0], child1[0])
+            depths = (child0[1], child1[1])
+            depth = max(0 if depth is None else depth for depth in depths) + 1
+            new_node = qvector.node(children, (1, 1))
+            q.put((new_node, depth))
 
-        node_tree = q.get()
+        node_tree, depth = q.get()
 
-        return qvector(node_tree, 1)
+        return qvector(node_tree, 1, depth)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
