@@ -18,10 +18,11 @@ class qmatrix():
             #	raise ValueError("Depth is not equal on nodes to be merged, {} != {}".format(node1.depth, node2.depth))
             return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([0 if depth is None else depth for depth in depths]) + 1
 
-    def __init__(self, root: node, weight: complex = 1.0, depth: int = 0):
+    def __init__(self, root: node, weight: complex = 1.0, depth: int = 0, termination = None):
         self.root = root
         self.weight = weight
         self.depth = depth
+        self.termination = termination
 
     def get_element(self, element: tuple) -> complex:
         size = 1<<self.depth
@@ -83,6 +84,8 @@ class qmatrix():
         n = shape[0]
         if (n & (n-1) != 0) or n < 2:
             raise ValueError("Matrix size is not a power of two, size is {} by {}".format(n, n))
+
+        termnode = qmatrix.node(None, None)
         for i in range(matrix.size>>2):
             elems = []
             for j in range(4):
@@ -90,7 +93,7 @@ class qmatrix():
             if all(elem == 0 for elem in elems):
                 qmat = None
             else:
-                qmat = qmatrix.node([None]*4, elems)
+                qmat = qmatrix.node([termnode]*4, elems)
             q1.put((qmat, 0))
 
         while q1.qsize() > 1:
@@ -106,27 +109,16 @@ class qmatrix():
                 qbc = qmatrix.node.merge(nodes, depths) # tuple, node & depth
             q1.put(qbc)
         (root, depth) = q1.get()
-        return qmatrix(root, 1, depth)
+        return qmatrix(root, 1, depth, termnode)
 
     @classmethod
     def kron(cls, first, target): # REUSES FIRST!!!
         if first is target:
             raise ValueError("Can not perform Kronecker product on itself, obects are the same")
-        # Initializing a stack of for all nodes
-        s1 = queue.LifoQueue()
-
-        # attach rootnode to stack
-        s1.put((first.root, first.depth))
-
-        while s1.qsize() != 0:
-            curr, depth = s1.get()
-            if depth > 0:
-                for conn in curr.conns:
-                    if conn:
-                        s1.put((conn, depth-1))
-
-            if all(conn is None for conn in curr.conns) and depth == 0:
-                curr.conns = [target.root]*4
+        # add the data inside target.root to first.termination and then replace the object tracked by first.termination
+        first.termination.conns = target.root.conns
+        first.termination.weights = target.root.weights
+        first.termination = target.termination
         first.depth += target.depth + 1
         first.weight *= target.weight
 
