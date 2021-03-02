@@ -13,8 +13,8 @@ class TestQmatrix(unittest.TestCase):
         qm = qmatrix.to_tree(matrix)
         self.assertTrue(np.array_equal(qm.to_matrix(), matrix))
 
-        newnode, newdepth = qmatrix.node.merge([qm.root, None, None, None], [1,0,0,0])
-        qmat = qmatrix(newnode, depth=newdepth)
+        newnode, newheight = qmatrix.node.merge([qm.root, None, None, None], [2,0,0,0])
+        qmat = qmatrix(newnode, height=newheight)
         result = np.zeros((8,8))
         result[:matrix.shape[0],:matrix.shape[1]] = matrix
         self.assertTrue(np.array_equal(qmat.to_matrix(), result))
