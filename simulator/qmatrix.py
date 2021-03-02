@@ -71,8 +71,11 @@ class qmatrix():
 		return matrix.item((y, x))
 
 	@staticmethod
-	def to_tree(matrix:np.ndarray): # Does NOT propagate GCD values up, does remove zero nodes in an ugly way. Adding propagation of factors can be done
-		# possible changes: change from queue to array. This allows for parallelization better.
+	# Does NOT propagate GCD values up, does remove zero nodes in an ugly way.
+	# Adding propagation of factors can be done
+	def to_tree(matrix:np.ndarray):
+		# possible changes: change from queue to array.
+		# This allows for parallelization better.
 		"""Returns a qmatrix tree from a matrix"""
 		q1 = queue.Queue()
 		shape = matrix.shape
