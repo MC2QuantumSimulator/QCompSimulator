@@ -19,5 +19,15 @@ class TestQmatrix(unittest.TestCase):
         result[:matrix.shape[0],:matrix.shape[1]] = matrix
         self.assertTrue(np.array_equal(qmat.to_matrix(), result))
 
+    def test_kron(self):
+        # Assume to_matrix and to_tree work correctly:
+        mat1 = np.array([[1,0],[0,1]])
+        mat2 = np.array([[1,1],[1,-1]])
+        qmat1 = qmatrix.to_tree(mat1)
+        qmat2 = qmatrix.to_tree(mat2)
+        matkron = np.kron(mat1, mat2)
+        qmatkron = qmatrix.kron(qmat1, qmat2)
+        self.assertTrue(np.array_equal(qmatkron.to_matrix(), matkron))
+
 if __name__ == '__main__':
     unittest.main()
