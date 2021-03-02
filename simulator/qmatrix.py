@@ -10,21 +10,21 @@ class qmatrix():
             self.weights = weights
 
         @classmethod
-        def merge(cls, nodes, depths): # Add propagation of factors.
-            """Merges four nodes into a single node of depth one larger"""
+        def merge(cls, nodes, heights): # Add propagation of factors.
+            """Merges four nodes into a single node of height one larger"""
             if all(node is None for node in nodes):
                 raise ValueError("All nodes to be merged are 'None', at most three 'None' allowed") # should we allow all None and return None here?
-            #if (all(node is not None for node in nodes) and (node1.depth != node2.depth)): # TODO: all not None should be equal
-            #	raise ValueError("Depth is not equal on nodes to be merged, {} != {}".format(node1.depth, node2.depth))
-            return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([0 if depth is None else depth for depth in depths]) + 1
+            #if (all(node is not None for node in nodes) and (node1.height != node2.height)): # TODO: all not None should be equal
+            #	raise ValueError("height is not equal on nodes to be merged, {} != {}".format(node1.height, node2.height))
+            return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([1 if height is None else height for height in heights]) + 1
 
-    def __init__(self, root: node, weight: complex = 1.0, depth: int = 0):
+    def __init__(self, root: node, weight: complex = 1.0, height: int = 1):
         self.root = root
         self.weight = weight
-        self.depth = depth
+        self.height = height
 
     def get_element(self, element: tuple) -> complex:
-        size = 1<<self.depth
+        size = 1<<(self.height-1)
         #if (element >= size<<1 or element < 0):
         #	raise ValueError("Element out of bounds, element was {} when allowed values are 0 - {}".format(element, size-1))
         value = self.weight
@@ -44,7 +44,7 @@ class qmatrix():
         return value
 
     def to_matrix(self):
-        size = 1<<(self.depth+1)
+        size = 1<<(self.height)
         arr = []
         for i in range(size):
             locarr = []
@@ -91,7 +91,7 @@ class qmatrix():
                 qmat = None
             else:
                 qmat = qmatrix.node([None]*4, elems)
-            q1.put((qmat, 0))
+            q1.put((qmat, 1))
 
         while q1.qsize() > 1:
             node1 = q1.get()
@@ -99,14 +99,14 @@ class qmatrix():
             node3 = q1.get()
             node4 = q1.get()
             nodes = (node1[0], node2[0], node3[0], node4[0])
-            depths = (node1[1], node2[1], node3[1], node4[1])
+            heights = (node1[1], node2[1], node3[1], node4[1])
             if all(node is None for node in nodes):
                 qbc = None
             else:
-                qbc = qmatrix.node.merge(nodes, depths) # tuple, node & depth
+                qbc = qmatrix.node.merge(nodes, heights) # tuple, node & height
             q1.put(qbc)
-        (root, depth) = q1.get()
-        return qmatrix(root, 1, depth)
+        (root, height) = q1.get()
+        return qmatrix(root, 1, height)
 
     @classmethod
     def kron(cls, first, target): # REUSES FIRST!!!
@@ -116,18 +116,18 @@ class qmatrix():
         s1 = queue.LifoQueue()
 
         # attach rootnode to stack
-        s1.put((first.root, first.depth))
+        s1.put((first.root, first.height))
 
         while s1.qsize() != 0:
-            curr, depth = s1.get()
-            if depth > 0:
+            curr, height = s1.get()
+            if height > 1:
                 for conn in curr.conns:
                     if conn:
-                        s1.put((conn, depth-1))
+                        s1.put((conn, height-1))
 
-            if all(conn is None for conn in curr.conns) and depth == 0:
+            if all(conn is None for conn in curr.conns) and height <= 1:
                 curr.conns = [target.root]*4
-        first.depth += target.depth + 1
+        first.height += target.height
         first.weight *= target.weight
 
     @classmethod

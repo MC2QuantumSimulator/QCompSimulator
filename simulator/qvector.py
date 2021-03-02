@@ -3,14 +3,14 @@ from queue import Queue, LifoQueue
 
 class qvector:
     class node:
-        def __init__(self, children, weights):
-            self.children = children
+        def __init__(self, conns, weights):
+            self.conns = conns
             self.weights = weights
 
-    def __init__(self, root_node, weight, depth):
+    def __init__(self, root_node, weight, height):
         self.root_node = root_node
         self.weight = weight
-        self.depth = depth
+        self.height = height
 
     @staticmethod
     def to_tree(vector_arr):
@@ -22,17 +22,17 @@ class qvector:
             q.put((node, 0))
 
         while q.qsize() > 1:
-            child0 = q.get()
-            child1 = q.get()
-            children = (child0[0], child1[0])
-            depths = (child0[1], child1[1])
-            depth = max(0 if depth is None else depth for depth in depths) + 1
-            new_node = qvector.node(children, (1, 1))
-            q.put((new_node, depth))
+            node0 = q.get()
+            node1 = q.get()
+            conns = (node0[0], node1[0])
+            heights = (node0[1], node1[1])
+            height = max(0 if height is None else height for height in heights) + 1
+            new_node = qvector.node(conns, (1, 1))
+            q.put((new_node, height))
 
-        node_tree, depth = q.get()
+        node_tree, height = q.get()
 
-        return qvector(node_tree, 1, depth)
+        return qvector(node_tree, 1, height)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
@@ -51,17 +51,17 @@ class qvector:
 
             # If current node has a right child
             # push it onto the first stack
-            if curr.children[1]:
-                s1.put(curr.children[1])
+            if curr.conns[1]:
+                s1.put(curr.conns[1])
 
             # If current node has a left child
             # push it onto the first stack
-            if curr.children[0]:
-                s1.put(curr.children[0])
+            if curr.conns[0]:
+                s1.put(curr.conns[0])
 
-            # If current node is a leaf node (Both children are None)
+            # If current node is a leaf node (Both conns are None)
             # push left and right leg-value onto stack
-            elif curr.children[0] is None and curr.children[1] is None:
+            elif curr.conns[0] is None and curr.conns[1] is None:
                 s2.append(curr.weights[0])
                 s2.append(curr.weights[1])
 
