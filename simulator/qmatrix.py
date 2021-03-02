@@ -112,15 +112,17 @@ class qmatrix():
         return qmatrix(root, 1, depth, termnode)
 
     @classmethod
-    def kron(cls, first, target): # REUSES FIRST!!!
+    def kron(cls, first, target): # REUSES FIRST!!! TODO: nuke first and target to avoid potential useage after kron
         if first is target:
             raise ValueError("Can not perform Kronecker product on itself, obects are the same")
+
         # add the data inside target.root to first.termination and then replace the object tracked by first.termination
         first.termination.conns = target.root.conns
         first.termination.weights = target.root.weights
         first.termination = target.termination
         first.depth += target.depth + 1
         first.weight *= target.weight
+        return first
 
     @classmethod
     def copy(cls, original):
