@@ -10,22 +10,22 @@ class qmatrix():
             self.weights = weights
 
         @classmethod
-        def merge(cls, nodes, depths): # Add propagation of factors.
-            """Merges four nodes into a single node of depth one larger"""
+        def merge(cls, nodes, heights): # Add propagation of factors.
+            """Merges four nodes into a single node of height one larger"""
             if all(node is None for node in nodes):
                 raise ValueError("All nodes to be merged are 'None', at most three 'None' allowed") # should we allow all None and return None here?
-            #if (all(node is not None for node in nodes) and (node1.depth != node2.depth)): # TODO: all not None should be equal
-            #	raise ValueError("Depth is not equal on nodes to be merged, {} != {}".format(node1.depth, node2.depth))
-            return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([0 if depth is None else depth for depth in depths]) + 1
+            #if (all(node is not None for node in nodes) and (node1.height != node2.height)): # TODO: all not None should be equal
+            #	raise ValueError("height is not equal on nodes to be merged, {} != {}".format(node1.height, node2.height))
+            return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([1 if height is None else height for height in heights]) + 1
 
-    def __init__(self, root: node, weight: complex = 1.0, depth: int = 0, termination = None):
+    def __init__(self, root: node, weight: complex = 1.0, height: int = 1, termination = None):
         self.root = root
         self.weight = weight
-        self.depth = depth
+        self.height = height
         self.termination = termination
 
     def get_element(self, element: tuple) -> complex:
-        size = 1<<self.depth
+        size = 1<<(self.height-1)
         #if (element >= size<<1 or element < 0):
         #	raise ValueError("Element out of bounds, element was {} when allowed values are 0 - {}".format(element, size-1))
         value = self.weight
@@ -45,7 +45,7 @@ class qmatrix():
         return value
 
     def to_matrix(self):
-        size = 1<<(self.depth+1)
+        size = 1<<(self.height)
         arr = []
         for i in range(size):
             locarr = []
@@ -94,7 +94,7 @@ class qmatrix():
                 qmat = None
             else:
                 qmat = qmatrix.node([termnode]*4, elems)
-            q1.put((qmat, 0))
+            q1.put((qmat, 1))
 
         while q1.qsize() > 1:
             node1 = q1.get()
@@ -102,14 +102,14 @@ class qmatrix():
             node3 = q1.get()
             node4 = q1.get()
             nodes = (node1[0], node2[0], node3[0], node4[0])
-            depths = (node1[1], node2[1], node3[1], node4[1])
+            heights = (node1[1], node2[1], node3[1], node4[1])
             if all(node is None for node in nodes):
                 qbc = None
             else:
-                qbc = qmatrix.node.merge(nodes, depths) # tuple, node & depth
+                qbc = qmatrix.node.merge(nodes, heights) # tuple, node & height
             q1.put(qbc)
-        (root, depth) = q1.get()
-        return qmatrix(root, 1, depth, termnode)
+        (root, height) = q1.get()
+        return qmatrix(root, 1, height, termnode)
 
     @classmethod
     def kron(cls, first, target): # REUSES FIRST!!! TODO: nuke first and target to avoid potential useage after kron
@@ -120,7 +120,7 @@ class qmatrix():
         first.termination.conns = target.root.conns
         first.termination.weights = target.root.weights
         first.termination = target.termination
-        first.depth += target.depth + 1
+        first.height += target.height + 1
         first.weight *= target.weight
         return first
 
