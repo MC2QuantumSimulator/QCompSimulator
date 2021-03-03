@@ -120,7 +120,7 @@ class qmatrix():
         first.termination.conns = target.root.conns
         first.termination.weights = target.root.weights
         first.termination = target.termination
-        first.height += target.height + 1
+        first.height += target.height
         first.weight *= target.weight
         return first
 
