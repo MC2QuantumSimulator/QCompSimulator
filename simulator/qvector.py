@@ -67,6 +67,22 @@ class qvector:
 
         return s2
 
+    def get_element(self, element):
+        size = 1<<self.height
+        if (element >= size<<1 or element < 0):
+            raise ValueError("Element out of bounds, element was {} when allowed values are 0 - {}".format(element, size-1))
+        value = self.weight
+        target = self.root
+        while size > 0:
+            goto = 0
+            if element&size:
+                goto += 1
+            if target.weights[goto] == 0:
+                return 0
+            value *= target.weights[goto]
+            target = target.conns[goto]
+            size = size>>1
+        return value
 
 def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."
