@@ -9,6 +9,13 @@ class qmatrix():
             self.conns = conns
             self.weights = weights
 
+        def __hash__(self) -> int:
+            return hash((self.conns, self.weights))
+
+        def __eq__(self, o: object) -> bool:
+            """Assumes only one copy of earlier nodes exist"""
+            return self.conns == o.conns and self.weights == o.weights
+
         @classmethod
         def merge(cls, nodes, heights): # Add propagation of factors.
             """Merges four nodes into a single node of height one larger"""
@@ -72,10 +79,12 @@ class qmatrix():
         return matrix.item((y, x))
 
     @staticmethod
-    def to_tree(matrix:np.ndarray): # Does NOT propagate GCD values up, does remove zero nodes in an ugly way. Adding propagation of factors can be done
+    def to_tree(matrix:np.ndarray): # TODO: break out parts of the function to reduce Cognitive Complexity + reuse parts
         # possible changes: change from queue to array. This allows for parallelization better.
         """Returns a qmatrix tree from a matrix"""
         q1 = queue.Queue()
+        # list to store found unique nodes
+        c1 = []
         shape = matrix.shape
         if matrix.ndim != 2:
             raise ValueError("Number of array dimensions was not 2, was {}".format(matrix.ndim))
@@ -91,25 +100,45 @@ class qmatrix():
             for j in range(4):
                 elems.append(qmatrix.get_matrix_element(matrix, 4*i+j))
             if all(elem == 0 for elem in elems):
-                qmat = None
+                qnode = None
+                nonzero = 0
             else:
-                qmat = qmatrix.node([termnode]*4, elems)
-            q1.put((qmat, 1))
+                nonzero = next((x for x in elems if x), None)
+                normelems = [elem / nonzero for elem in elems]
+                qnode = qmatrix.node([termnode]*4, normelems)
+                # TODO: change to something better than O(n) (hash map eq.)
+                copy = next((c1_elem for c1_elem in c1 if qnode == c1_elem), None)
+                if copy is not None:
+                    qnode = copy
+                else:
+                    c1.append(qnode)
+            q1.put([qnode, nonzero, 1])
 
         while q1.qsize() > 1:
             node1 = q1.get()
             node2 = q1.get()
             node3 = q1.get()
             node4 = q1.get()
-            nodes = (node1[0], node2[0], node3[0], node4[0])
-            heights = (node1[1], node2[1], node3[1], node4[1])
+            nodes = [node1[0], node2[0], node3[0], node4[0]]
+            weights = [node1[1], node2[1], node3[1], node4[1]]
+            heights = (node1[2], node2[2], node3[2], node4[2])
             if all(node is None for node in nodes):
-                qbc = None
+                qbc = [None, 0, 1]
             else:
-                qbc = qmatrix.node.merge(nodes, heights) # tuple, node & height
+                nonzero = next((x for x in weights if x), None)
+                normelems = [weight / nonzero for weight in weights]
+                qnodeinner = qmatrix.node(nodes, normelems)
+                height = max([1 if height is None else height for height in heights]) + 1
+                # TODO: change to something better than O(n) (hash map eq.)
+                copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None)
+                if copyinner is not None:
+                    qnodeinner = copyinner
+                else:
+                    c1.append(qnodeinner)
+                qbc = [qnodeinner, nonzero, height]
             q1.put(qbc)
-        (root, height) = q1.get()
-        return qmatrix(root, 1, height, termnode)
+        (root, weight, height) = q1.get()
+        return qmatrix(root, weight, height, termnode)
 
     @classmethod
     def kron(cls, first, target): # REUSES FIRST!!! TODO: nuke first and target to avoid potential useage after kron
