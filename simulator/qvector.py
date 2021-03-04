@@ -67,15 +67,15 @@ class qvector:
 
         return s2
 
-    def get_element(self, element):
+    def get_element(self, index):
         size = 1<<self.height
-        if (element >= size<<1 or element < 0):
-            raise ValueError("Element out of bounds, element was {} when allowed values are 0 - {}".format(element, size-1))
+        if (index >= size<<1 or index < 0):
+            raise ValueError("Index out of bounds, index was {} when allowed values are 0 - {}".format(index, size-1))
         value = self.weight
         target = self.root
         while size > 0:
             goto = 0
-            if element&size:
+            if index&size:
                 goto += 1
             if target.weights[goto] == 0:
                 return 0

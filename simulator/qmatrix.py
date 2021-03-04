@@ -23,7 +23,7 @@ class qmatrix():
         self.weight = weight
         self.height = height
 
-    def get_element(self, element: tuple) -> complex:
+    def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
         #if (element >= size<<1 or element < 0):
         #	raise ValueError("Element out of bounds, element was {} when allowed values are 0 - {}".format(element, size-1))
@@ -31,9 +31,9 @@ class qmatrix():
         target = self.root
         while size > 0:
             goto = 0
-            if element[0]&size:
+            if index[0]&size:
                 goto += 2
-            if element[1]&size:
+            if index[1]&size:
                 goto += 1
             if target.weights[goto] == 0:
                     return 0
@@ -54,16 +54,16 @@ class qmatrix():
         return np.array(arr)
     
     @staticmethod
-    def get_matrix_element(matrix: np.ndarray, element: int) -> complex:
+    def get_matrix_element(matrix: np.ndarray, index: int) -> complex:
         size = matrix.size>>1 # is 2^2n-1, only one bit is 1
         offset = matrix.shape[0]>>1
         x = 0
         y = 0
         while size > 0:
-            if element&size:
+            if index&size:
                 y += offset
             size = size>>1
-            if element&size:
+            if index&size:
                 x += offset
             size = size>>1
             offset = offset>>1
