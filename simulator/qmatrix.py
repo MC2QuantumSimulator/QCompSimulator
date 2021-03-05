@@ -18,10 +18,11 @@ class qmatrix():
             #	raise ValueError("height is not equal on nodes to be merged, {} != {}".format(node1.height, node2.height))
             return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([1 if height is None else height for height in heights]) + 1
 
-    def __init__(self, root: node, weight: complex = 1.0, height: int = 1):
+    def __init__(self, root: node, weight: complex = 1.0, height: int = 1, termination = None):
         self.root = root
         self.weight = weight
         self.height = height
+        self.termination = termination
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
@@ -83,6 +84,8 @@ class qmatrix():
         n = shape[0]
         if (n & (n-1) != 0) or n < 2:
             raise ValueError("Matrix size is not a power of two, size is {} by {}".format(n, n))
+
+        termnode = qmatrix.node(None, None)
         for i in range(matrix.size>>2):
             elems = []
             for j in range(4):
@@ -90,7 +93,7 @@ class qmatrix():
             if all(elem == 0 for elem in elems):
                 qmat = None
             else:
-                qmat = qmatrix.node([None]*4, elems)
+                qmat = qmatrix.node([termnode]*4, elems)
             q1.put((qmat, 1))
 
         while q1.qsize() > 1:
@@ -106,29 +109,26 @@ class qmatrix():
                 qbc = qmatrix.node.merge(nodes, heights) # tuple, node & height
             q1.put(qbc)
         (root, height) = q1.get()
-        return qmatrix(root, 1, height)
+        return qmatrix(root, 1, height, termnode)
 
     @classmethod
-    def kron(cls, first, target): # REUSES FIRST!!!
+    def kron(cls, first, target):
+        """Returns the kronecker product of first and target, consuming the trees in the process"""
+        # kron on itself would cause an infinite loop in the tree, raise error if attempted
         if first is target:
-            raise ValueError("Can not perform Kronecker product on itself, obects are the same")
-        # Initializing a stack of for all nodes
-        s1 = queue.LifoQueue()
+            raise ValueError("Can not perform Kronecker product on itself, objects are the same")
 
-        # attach rootnode to stack
-        s1.put((first.root, first.height))
+        # add the data inside target.root to first.termination and then create new qmatrix
+        first.termination.conns = target.root.conns
+        first.termination.weights = target.root.weights
+        result = qmatrix(first.root, first.weight*target.weight, first.height+target.height, target.termination)
 
-        while s1.qsize() != 0:
-            curr, height = s1.get()
-            if height > 1:
-                for conn in curr.conns:
-                    if conn:
-                        s1.put((conn, height-1))
-
-            if all(conn is None for conn in curr.conns) and height <= 1:
-                curr.conns = [target.root]*4
-        first.height += target.height
-        first.weight *= target.weight
+        # Nuke first and target
+        first.root = None
+        first.termination = None
+        target.root = None
+        target.termination = None
+        return result
 
     @classmethod
     def copy(cls, original):
