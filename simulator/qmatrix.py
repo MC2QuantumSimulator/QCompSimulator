@@ -116,7 +116,7 @@ class qmatrix():
         """Returns the kronecker product of first and target, consuming the trees in the process"""
         # kron on itself would cause an infinite loop in the tree, raise error if attempted
         if first is target:
-            raise ValueError("Can not perform Kronecker product on itself, obects are the same")
+            raise ValueError("Can not perform Kronecker product on itself, objects are the same")
 
         # add the data inside target.root to first.termination and then create new qmatrix
         first.termination.conns = target.root.conns
