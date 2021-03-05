@@ -70,11 +70,6 @@ class qvector:
                     i-=1
         return qvector(new_root,1,matrix_tree.height)
 
-    @classmethod
-    def add(cls,vector_tree1,vector_tree2): #REDUNDANT?
-        bottom_nodes=np.add(vector_tree1.to_vector(),vector_tree2.to_vector())
-        return cls.to_tree(bottom_nodes)
-
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
     # better complexity than regular python lists (O(1) vs O(N))
@@ -107,37 +102,6 @@ class qvector:
                 s2.append(curr.weights[1])
 
         return s2
-
-    @staticmethod
-    def sub_matrix_indexing(input_index, qubits): #REDUNDANT?
-        size = 1 << qubits
-        q = Queue()
-        list_matrix = []
-        for i in range(size ** 2):
-            list_matrix.append(i)
-        elements = []
-        q.put((list_matrix, size))
-
-        while q.qsize() != 0:
-            (curr_matrix, size) = q.get()
-            size_half = size // 2
-            if size == 2:
-                for i in range(4):
-                    elements.append(curr_matrix[i])
-            else:
-                sub = 0
-                for elem in range(4):
-                    sub_matrix = []
-                    for i in range(size_half):
-                        for j in range(size_half):
-                            index = j + size * i + sub
-                            sub_matrix.append(curr_matrix[index])
-                    if elem == 1:
-                        sub = (size ** 2) // 2
-                    else:
-                        sub += size_half
-                    q.put((sub_matrix, size // 2))
-        return elements.index(input_index)
 
     def get_element(self, index):
         size = 1 << self.height
