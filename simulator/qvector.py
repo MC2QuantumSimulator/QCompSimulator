@@ -70,10 +70,6 @@ class qvector:
                     i-=1
         return qvector(new_root,1,matrix_tree.height)
 
-    def get_element(self,element):
-        vector = self.to_vector()
-        return vector[element]
-
     @classmethod
     def add(cls,vector_tree1,vector_tree2): #REDUNDANT?
         bottom_nodes=np.add(vector_tree1.to_vector(),vector_tree2.to_vector())
