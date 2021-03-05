@@ -75,7 +75,7 @@ class qvector:
         return vector[element]
 
     @classmethod
-    def add(cls,vector_tree1,vector_tree2):
+    def add(cls,vector_tree1,vector_tree2): #REDUNDANT?
         bottom_nodes=np.add(vector_tree1.to_vector(),vector_tree2.to_vector())
         return cls.to_tree(bottom_nodes)
 

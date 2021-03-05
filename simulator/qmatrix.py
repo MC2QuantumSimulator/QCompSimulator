@@ -44,7 +44,7 @@ class qmatrix():
 
         return value
 
-    def get_element_no_touple(self,element):
+    def get_element_no_touple(self,element): #USED IN MATRIX X VECTOR MULT IN QVECTOR
         size = 1<<(self.height)
         element_to_touple=(element//size,element%size)
         return self.get_element(element_to_touple)
