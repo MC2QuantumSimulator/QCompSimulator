@@ -1,4 +1,5 @@
 from queue import Queue, LifoQueue
+import numpy as np
 
 
 class qvector:
@@ -34,6 +35,50 @@ class qvector:
 
         return qvector(node_tree, 1, height)
 
+    @classmethod
+    def mult(cls,matrix_tree,vector_tree):
+        #Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create a child of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
+        #if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
+        q=LifoQueue()
+        height=matrix_tree.height
+        new_root=cls.node([None]*2,(1,1))
+        q.put((new_root , height))
+        matrix_index=0
+        while q.qsize() != 0:
+            (curr_node,height)=q.get()
+            if height==1:
+                weight_left=0
+                weight_right=0
+                vector_index=0
+                for i in range(2**matrix_tree.height):
+                    weight_left+=matrix_tree.get_element_no_touple(matrix_index)*vector_tree.get_element(vector_index)
+                    matrix_index+=1
+                    vector_index+=1
+                vector_index=0
+                for i in range(2**matrix_tree.height):
+                    weight_right+=matrix_tree.get_element_no_touple(matrix_index)*vector_tree.get_element(vector_index)
+                    matrix_index+=1
+                    vector_index+=1
+                curr_node.weights=(weight_left,weight_right)
+            else:
+                i=1
+                while i != -1:
+                    if curr_node.conns[i] is None:
+                        new_node=cls.node([None]*2,(1,1))
+                        curr_node.conns[i]=new_node
+                        q.put((new_node,height-1))
+                    i-=1
+        return qvector(new_root,1,matrix_tree.height)
+
+    def get_element(self,element):
+        vector = self.to_vector()
+        return vector[element]
+
+    @classmethod
+    def add(cls,vector_tree1,vector_tree2):
+        bottom_nodes=np.add(vector_tree1.to_vector(),vector_tree2.to_vector())
+        return cls.to_tree(bottom_nodes)
+
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
     # better complexity than regular python lists (O(1) vs O(N))
@@ -67,6 +112,53 @@ class qvector:
 
         return s2
 
+    @staticmethod
+    def sub_matrix_indexing(input_index, qubits): #REDUNDANT?
+        size = 1 << qubits
+        q = Queue()
+        list_matrix = []
+        for i in range(size ** 2):
+            list_matrix.append(i)
+        elements = []
+        q.put((list_matrix, size))
+
+        while q.qsize() != 0:
+            (curr_matrix, size) = q.get()
+            size_half = size // 2
+            if size == 2:
+                for i in range(4):
+                    elements.append(curr_matrix[i])
+            else:
+                sub = 0
+                for elem in range(4):
+                    sub_matrix = []
+                    for i in range(size_half):
+                        for j in range(size_half):
+                            index = j + size * i + sub
+                            sub_matrix.append(curr_matrix[index])
+                    if elem == 1:
+                        sub = (size ** 2) // 2
+                    else:
+                        sub += size_half
+                    q.put((sub_matrix, size // 2))
+        return elements.index(input_index)
+
+    def get_element(self, index):
+        size = 1 << self.height
+        if (index >= size << 1 or index < 0):
+            raise ValueError("Index out of bounds, index was {} when allowed values are 0 - {}".format(index, size - 1))
+        value = self.weight
+        target = self.root_node
+        while size > 0:
+            goto = 0
+            if index & size:
+                goto += 1
+            if target.weights[goto] == 0:
+                return 0
+            value *= target.weights[goto]
+            target = target.conns[goto]
+            size = size >> 1
+        return value
 
 def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."

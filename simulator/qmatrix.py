@@ -1,3 +1,4 @@
+import math
 import queue
 import numpy as np
 
@@ -42,6 +43,11 @@ class qmatrix():
             size = size>>1
 
         return value
+
+    def get_element_no_touple(self,element):
+        size = 1<<(self.height)
+        element_to_touple=(element//size,element%size)
+        return self.get_element(element_to_touple)
 
     def to_matrix(self):
         size = 1<<(self.height)
@@ -129,6 +135,40 @@ class qmatrix():
                 curr.conns = [target.root]*4
         first.height += target.height
         first.weight *= target.weight
+
+    @staticmethod
+    def matrix_traversal(matrix): #Returns values with sub-matrix indixing. REDUNDANT?
+        q=queue.Queue()
+        size = np.shape(matrix)[0]
+        list_matrix=[]
+        for i in range(size**2):
+            list_matrix.append(matrix.item(i))
+        elements=[]
+        q.put((list_matrix,size))
+
+        while q.qsize() != 0:
+            (curr_matrix,size) = q.get()
+            size_half=size//2
+            if size==2:
+                for i in range(4):
+                    elements.append(curr_matrix[i])
+            else:
+                sub=0
+                for elem in range(4):
+                    sub_matrix = []
+                    for i in range(size_half):
+                        for j in range(size_half):
+                            index=j+size*i+sub
+                            print(index)
+                            sub_matrix.append(curr_matrix[index])
+                    if elem == 1:
+                        sub=(size**2)//2
+                    else:
+                        sub+=size_half
+                    q.put((sub_matrix,size//2))
+        return elements
+
+
 
     @classmethod
     def copy(cls, original):
