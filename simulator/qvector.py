@@ -41,33 +41,32 @@ class qvector:
         #if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
         q=LifoQueue()
         height=matrix_tree.height
-        new_root=cls.node([None]*2,(1,1))
+        size=2**height
+        new_root=cls.node([None]*2,(1,1)) #Will be root node of resulting tree.
         q.put((new_root , height))
-        matrix_index=0
+        matrix_index=0 #Only used in set_weight()
         while q.qsize() != 0:
             (curr_node,height)=q.get()
             if height==1:
-                weight_left=0
-                weight_right=0
-                vector_index=0
-                for i in range(2**matrix_tree.height):
-                    weight_left+=matrix_tree.get_element_no_touple(matrix_index)*vector_tree.get_element(vector_index)
-                    matrix_index+=1
-                    vector_index+=1
-                vector_index=0
-                for i in range(2**matrix_tree.height):
-                    weight_right+=matrix_tree.get_element_no_touple(matrix_index)*vector_tree.get_element(vector_index)
-                    matrix_index+=1
-                    vector_index+=1
-                curr_node.weights=(weight_left,weight_right)
+                # Hm, they cannot be executed in parallell atm. Not a big deal?..
+                # Could separate into two functions for left and right -> Can run parallell
+                curr_node.weights=(set_weight(),set_weight())
             else:
-                i=1
-                while i != -1:
+                for i in [1,0]:
                     if curr_node.conns[i] is None:
                         new_node=cls.node([None]*2,(1,1))
                         curr_node.conns[i]=new_node
                         q.put((new_node,height-1))
-                    i-=1
+
+            def set_weight():
+                nonlocal matrix_index
+                vector_index = 0
+                weight=0
+                for i in range(size):
+                    weight += matrix_tree.get_element_no_touple(matrix_index) * vector_tree.get_element(vector_index)
+                    matrix_index += 1
+                    vector_index += 1
+                return weight
         return qvector(new_root,1,matrix_tree.height)
 
     # returns an array of the values in the leaf nodes.
