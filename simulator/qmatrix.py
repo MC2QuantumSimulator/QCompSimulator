@@ -32,6 +32,76 @@ class qmatrix():
         self.height = height
         self.termination = termination
 
+    @classmethod
+    def mult(cls, first, second):
+        # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
+        # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
+        current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
+        matrix_index_list=qmatrix.sub_matrix_indexing(first.height) #This way of doing it is somewhat retarded.
+
+        def set_weight(current_leg):
+            matrix_index=matrix_index_list[current_leg]
+            weight = 0
+            for i in range(size):
+                weight += first.get_element_no_touple((matrix_index // size)*size + i) * second.get_element_no_touple(
+                    matrix_index % size + i * size)
+            return weight
+
+        if (first.height != second.height):
+            raise ValueError("Dimensions do not match, mult between ", first.to_matrix(), second.to_matrix())
+        q = queue.LifoQueue()
+        height = first.height
+        size = 2 ** height
+        new_root = cls.node([None] * 4, [1]*4)  # Will be root node of resulting tree.
+        q.put((new_root, height))
+        while q.qsize() != 0:
+            (curr_node, height) = q.get()
+            if height == 1:
+                curr_node.weights = (set_weight(current_leg), set_weight(current_leg+1), set_weight(current_leg+2), set_weight(current_leg+3))
+                current_leg+=4
+                # A "sub tree" should be finished at this point. Possibly insert some cleanup here?
+            else:
+                for i in [3, 2, 1, 0]:
+                    if curr_node.conns[i] is None:
+                        new_node = cls.node([None] * 4, [1]*4)
+                        curr_node.conns[i] = new_node
+                        q.put((new_node, height - 1))
+
+        return qmatrix(new_root, 1, first.height)
+
+    @staticmethod
+    def sub_matrix_indexing(qubits):  # This is kind of stupid :/
+        #But it returns a list of elements that correspond to indexing in a sub-matrix way.
+        #nputing qubits = 1 would return (0,1,2,3). Inputing qubits = 2 would return (0,1,4,5,2,3,6,7....), picking one sub matrix at a time.
+        size = 1 << qubits
+        q = queue.Queue()
+        list_matrix = []
+        for i in range(size ** 2):
+            list_matrix.append(i)
+        elements = []
+        q.put((list_matrix, size))
+
+        while q.qsize() != 0:
+            (curr_matrix, size) = q.get()
+            size_half = size // 2
+            if size == 2:
+                for i in range(4):
+                    elements.append(curr_matrix[i])
+            else:
+                sub = 0
+                for elem in range(4):
+                    sub_matrix = []
+                    for i in range(size_half):
+                        for j in range(size_half):
+                            index = j + size * i + sub
+                            sub_matrix.append(curr_matrix[index])
+                    if elem == 1:
+                        sub = (size ** 2) // 2
+                    else:
+                        sub += size_half
+                    q.put((sub_matrix, size // 2))
+        return elements
+
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
         #if (element >= size<<1 or element < 0):

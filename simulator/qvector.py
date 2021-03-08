@@ -20,7 +20,7 @@ class qvector:
 
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
             node = qvector.node([None]*2, (weight0, weight1))  # Create a leaf node from every pair.
-            q.put((node, 0))
+            q.put((node, 1))
 
         while q.qsize() > 1:
             node0 = q.get()
@@ -37,20 +37,30 @@ class qvector:
 
     @classmethod
     def mult(cls,matrix_tree,vector_tree):
-        #Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create a child of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
+        #Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         #if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
+        current_leg=0
+        def set_weight(current_leg):
+            weight = 0
+            for i in range(size):
+                weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
+            return weight
+
+        if (matrix_tree.height != vector_tree.height):
+            raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
+
         q=LifoQueue()
         height=matrix_tree.height
         size=2**height
         new_root=cls.node([None]*2,(1,1)) #Will be root node of resulting tree.
         q.put((new_root , height))
-        matrix_index=0 #Only used in set_weight()
+
         while q.qsize() != 0:
             (curr_node,height)=q.get()
             if height==1:
-                # Hm, they cannot be executed in parallell atm. Not a big deal?..
-                # Could separate into two functions for left and right -> Can run parallell
-                curr_node.weights=(set_weight(),set_weight())
+                curr_node.weights=(set_weight(current_leg),set_weight(current_leg+1))
+                current_leg+=2
+                #A "sub tree" should be finished at this point. Possibly insert some cleanup here?
             else:
                 for i in [1,0]:
                     if curr_node.conns[i] is None:
@@ -58,15 +68,6 @@ class qvector:
                         curr_node.conns[i]=new_node
                         q.put((new_node,height-1))
 
-            def set_weight():
-                nonlocal matrix_index
-                vector_index = 0
-                weight=0
-                for i in range(size):
-                    weight += matrix_tree.get_element_no_touple(matrix_index) * vector_tree.get_element(vector_index)
-                    matrix_index += 1
-                    vector_index += 1
-                return weight
         return qvector(new_root,1,matrix_tree.height)
 
     # returns an array of the values in the leaf nodes.
@@ -103,7 +104,7 @@ class qvector:
         return s2
 
     def get_element(self, index):
-        size = 1 << self.height
+        size = 1 << self.height-1
         if (index >= size << 1 or index < 0):
             raise ValueError("Index out of bounds, index was {} when allowed values are 0 - {}".format(index, size - 1))
         value = self.weight
