@@ -8,6 +8,10 @@ class qvector:
             self.conns = conns
             self.weights = weights
 
+        def __eq__(self, o: object) -> bool:
+            """Assumes only one copy of earlier nodes exist"""
+            return self.conns == o.conns and self.weights == o.weights
+
     def __init__(self, root_node, weight, height):
         self.root_node = root_node
         self.weight = weight
@@ -18,22 +22,46 @@ class qvector:
         # initializing q
         q = Queue(0)
 
+        c1 = []
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
-            node = qvector.node([None]*2, (weight0, weight1))  # Create a leaf node from every pair.
-            q.put((node, 1))
+            if weight0 == 0 and weight1 == 0:
+                node = None
+                nonzero = 0
+            else:
+                nonzero = weight0 if weight0 != 0 else weight1
+                normelems = [weight0/nonzero, weight1/nonzero]
+                node = qvector.node([None]*2, normelems)  # Create a leaf node from every pair.
+                copy = next((c1_elem for c1_elem in c1 if node == c1_elem), None)
+                if copy is not None:
+                    node = copy
+                else:
+                    c1.append(node)
+            q.put((node, nonzero, 1))
 
         while q.qsize() > 1:
             node0 = q.get()
             node1 = q.get()
-            conns = (node0[0], node1[0])
-            heights = (node0[1], node1[1])
-            height = max(0 if height is None else height for height in heights) + 1
-            new_node = qvector.node(conns, (1, 1))
-            q.put((new_node, height))
+            nodes = (node0[0], node1[0])
+            weights = (node0[1], node1[1])
+            heights = (node0[2], node1[2])
+            if all(node is None for node in nodes):
+                qbc = [None, 0, 1]
+            else:
+                nonzero = next((x for x in weights if x), None)
+                normelems = [weight / nonzero for weight in weights]
+                qnodeinner = qvector.node(nodes, normelems)
+                height = max([1 if height is None else height for height in heights]) + 1
+                # TODO: change to something better than O(n) (hash map eq.)
+                copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None)
+                if copyinner is not None:
+                    qnodeinner = copyinner
+                else:
+                    c1.append(qnodeinner)
+                qbc = [qnodeinner, nonzero, height]
+            q.put(qbc)
+        (root, weight, height) = q.get()
 
-        node_tree, height = q.get()
-
-        return qvector(node_tree, 1, height)
+        return qvector(root, weight, height)
 
     @classmethod
     def mult(cls,matrix_tree,vector_tree):
@@ -80,26 +108,28 @@ class qvector:
         s2 = []
 
         # attach rootnode to stack
-        s1.put(self.root_node)
+        s1.put((self.root_node, self.weight, self.height))
 
         while s1.qsize() != 0:
-            curr = s1.get()
+            curr, weight, height = s1.get()
 
-            # If current node has a right child
-            # push it onto the first stack
-            if curr.conns[1]:
-                s1.put(curr.conns[1])
+            if not curr and height > 0:
+                s2 += ([0]*(1 << height))
+            elif curr:
 
-            # If current node has a left child
-            # push it onto the first stack
-            if curr.conns[0]:
-                s1.put(curr.conns[0])
+                # If current node has a right child
+                # push it onto the first stack
+                s1.put((curr.conns[1], curr.weights[1]*weight, height-1))
 
-            # If current node is a leaf node (Both conns are None)
-            # push left and right leg-value onto stack
-            elif curr.conns[0] is None and curr.conns[1] is None:
-                s2.append(curr.weights[0])
-                s2.append(curr.weights[1])
+                # If current node has a left child
+                # push it onto the first stack
+                s1.put((curr.conns[0], curr.weights[0]*weight, height-1))
+
+                # If current node is a leaf node (Both conns are None)
+                # push left and right leg-value onto stack
+                if curr.conns[0] is None and curr.conns[1] is None and height == 1:
+                    s2.append(curr.weights[0]*weight)
+                    s2.append(curr.weights[1]*weight)
 
         return s2
 
@@ -128,6 +158,6 @@ def pairwise(iterable):
 
 # ---------can be removed - for testing purposes-------------
 if __name__ == '__main__':
-    tree = qvector.to_tree([1, 2, 3, 4, 5, 6, 7, 8])
+    tree = qvector.to_tree([1, 2, 4, 8, 0, 0, 0, 0])
     vector = tree.to_vector()
     print(vector)
