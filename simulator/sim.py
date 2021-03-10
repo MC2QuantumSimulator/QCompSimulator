@@ -1,4 +1,6 @@
 import argparse
+import ParseInput
+import circuitBuilder
 
 def main():
     parser = argparse.ArgumentParser(description='Tree based qasm simulator.')
@@ -19,9 +21,27 @@ def main():
 
     gatespath = args.gates
     circuitpath = args.circuit
+    inputstate = args.input_state
+    numreps = args.num_reps
+    savestate = args.state
 
-    print('gatepath: ' + gatespath)
+    # Print out the input to see that it worked
+    print('gatepath:    ' + gatespath)
     print('circuitpath: ' + circuitpath)
+    print('input state: ' + ('No input' if not inputstate else inputstate))
+    print('num of reps: {}'.format(numreps))
+    print('Save state:  {}'.format(savestate))
+
+    # pass the gates path to ParseInput ant print the returned lists
+    matnames, matlist = ParseInput.ParseInput.parse_gates(gatespath)
+    for i, mat in enumerate(matlist):
+        print(matnames[i])
+        print(mat)
+
+    # Parse the qasm file before sending to circuitbuilder?
+    # Returns the final matrix? TODO: WHAT ELSE COULD IT RETURN?
+    # Should circuitBuilder be a class that also includes measurment funcs and such or should that be in a different place?
+    qc = circuitBuilder.build_circuit()
 
 
 if __name__ == '__main__':
