@@ -1,3 +1,4 @@
+import math
 from queue import Queue, LifoQueue
 import numpy as np
 
@@ -19,6 +20,11 @@ class qvector:
 
     @staticmethod
     def to_tree(vector_arr):
+
+        n = len(vector_arr)
+        if (n & (n-1) != 0) or n < 2:
+            raise ValueError("Array length is not a power of two, length is {}".format(n))
+        height = int(math.log2(n))
         # initializing q
         q = Queue(0)
 
@@ -36,30 +42,28 @@ class qvector:
                     node = copy
                 else:
                     c1.append(node)
-            q.put((node, nonzero, 1))
+            q.put((node, nonzero))
 
         while q.qsize() > 1:
             node0 = q.get()
             node1 = q.get()
             nodes = (node0[0], node1[0])
             weights = (node0[1], node1[1])
-            heights = (node0[2], node1[2])
             if all(node is None for node in nodes):
-                qbc = [None, 0, 1]
+                qbc = [None, 0]
             else:
                 nonzero = next((x for x in weights if x), None)
                 normelems = [weight / nonzero for weight in weights]
                 qnodeinner = qvector.node(nodes, normelems)
-                height = max([1 if height is None else height for height in heights]) + 1
                 # TODO: change to something better than O(n) (hash map eq.)
                 copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None)
                 if copyinner is not None:
                     qnodeinner = copyinner
                 else:
                     c1.append(qnodeinner)
-                qbc = [qnodeinner, nonzero, height]
+                qbc = [qnodeinner, nonzero]
             q.put(qbc)
-        (root, weight, height) = q.get()
+        (root, weight) = q.get()
 
         return qvector(root, weight, height)
 
