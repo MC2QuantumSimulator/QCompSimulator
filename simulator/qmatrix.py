@@ -170,6 +170,7 @@ class qmatrix():
         if (n & (n-1) != 0) or n < 2:
             raise ValueError("Matrix size is not a power of two, size is {} by {}".format(n, n))
 
+        height = int(math.log2(n))
         termnode = qmatrix.node(None, None)
         for i in range(matrix.size>>2):
             elems = []
@@ -188,7 +189,7 @@ class qmatrix():
                     qnode = copy
                 else:
                     c1.append(qnode)
-            q1.put([qnode, nonzero, 1])
+            q1.put([qnode, nonzero])
 
         while q1.qsize() > 1:
             node1 = q1.get()
@@ -197,23 +198,21 @@ class qmatrix():
             node4 = q1.get()
             nodes = [node1[0], node2[0], node3[0], node4[0]]
             weights = [node1[1], node2[1], node3[1], node4[1]]
-            heights = (node1[2], node2[2], node3[2], node4[2])
             if all(node is None for node in nodes):
-                qbc = [None, 0, 1]
+                qbc = [None, 0]
             else:
                 nonzero = next((x for x in weights if x), None)
                 normelems = [weight / nonzero for weight in weights]
                 qnodeinner = qmatrix.node(nodes, normelems)
-                height = max([1 if height is None else height for height in heights]) + 1
                 # TODO: change to something better than O(n) (hash map eq.)
                 copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None)
                 if copyinner is not None:
                     qnodeinner = copyinner
                 else:
                     c1.append(qnodeinner)
-                qbc = [qnodeinner, nonzero, height]
+                qbc = [qnodeinner, nonzero]
             q1.put(qbc)
-        (root, weight, height) = q1.get()
+        (root, weight) = q1.get()
         return qmatrix(root, weight, height, termnode)
 
     @classmethod
