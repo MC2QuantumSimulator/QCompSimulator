@@ -1,5 +1,5 @@
 from qmatrix import qmatrix
 
-def build_circuit():
+def build_circuit(gate) -> qmatrix:
 	"""Constructs a matrix representing a quantum circuit"""
-	pass
+	return qmatrix.to_tree(gate)
