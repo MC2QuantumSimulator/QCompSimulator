@@ -31,7 +31,7 @@ class ParseInput:
 
         for index ,gate in enumerate(gates_string_form):
             dimension = eval(gate_size.pop())
-            Matrix = [[0 for x in range(dimension)] for y in range(dimension)]
+            matrix = [[0 for _ in range(dimension)] for _ in range(dimension)]
             rows = gate.split(';')
 
             # Splitting into a list containing all elements in string form
@@ -44,16 +44,17 @@ class ParseInput:
             # Put elements in matrix
             for i in range(dimension):
                 for j in range(dimension):
-                    Matrix[i][j] = fourFn.eval(elements.pop(0))
+                    matrix[i][j] = fourFn.eval(elements.pop(0))
 
             # Checks if matrix is unitary and adds it to 'gates_matrix_form' if so        
-            if not is_unitary(np.matrix(Matrix)):
+            if not is_unitary(np.matrix(matrix)):
                 print(gate_names[index] + ": is not unitary")
+                gate_names.pop(index)
                 continue
 
-            gates_matrix_form.append(Matrix)
+            gates_matrix_form.append(matrix)
 
-        return gates_matrix_form
+        return gate_names, gates_matrix_form
 
     if __name__ == '__main__':
         abs_path = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt") # Always gives the correct path (atleast for Linux)
