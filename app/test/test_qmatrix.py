@@ -1,6 +1,11 @@
+import os, sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
+
 import unittest
 import numpy as np
-from qmatrix import qmatrix
+from simulator.qmatrix import qmatrix
 
 class TestQmatrix(unittest.TestCase):
 
