@@ -6,7 +6,7 @@ from qmatrix import qmatrix
 from qvector import qvector
 
 def main():
-    parser = argparse.ArgumentParser(description='Tree based qasm simulator.')
+    parser = argparse.ArgumentParser(description='Tree based qasm sim.')
 
     # Assign a path to the arg 'gates'
     parser.add_argument('-g', dest='gates', help='File with gates', required=True)
