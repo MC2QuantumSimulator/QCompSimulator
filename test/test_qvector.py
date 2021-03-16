@@ -4,9 +4,9 @@ parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
 import unittest
-from qvector import qvector
+from simulator.qvector import qvector
 import numpy as np
-from qmatrix import qmatrix
+from simulator.qmatrix import qmatrix
 
 class TestQvector(unittest.TestCase):
 
