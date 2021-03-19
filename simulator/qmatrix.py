@@ -37,7 +37,7 @@ class qmatrix():
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
         current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
-        matrix_index_list=qmatrix.sub_matrix_indexing_MDB(first.height)
+        matrix_index_list=qmatrix.z_order_indexing(first.height)
 
         def set_weight(current_leg):
             matrix_index=matrix_index_list[current_leg]
@@ -70,7 +70,7 @@ class qmatrix():
         return qmatrix(new_root, 1, first.height)
 
     @staticmethod
-    def sub_matrix_indexing_MDB(qubits):
+    def z_order_indexing(qubits):
         size = 1 << qubits
         def moserDeBruijn(n): #Somewhat stolen from the interwebs. Is that a problem?
             def gen(n):
