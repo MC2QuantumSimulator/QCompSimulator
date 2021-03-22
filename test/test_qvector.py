@@ -15,8 +15,20 @@ class TestQvector(unittest.TestCase):
         pass
 
     def test_to_tree(self):
-        # TODO
-        pass
+        arrays = [[0,0,0,0,0,0,0,0],
+                [1,0,0,0,0,0,0,0],
+                [0,1,0,0,0,0,0,0],
+                [0,0,1,0,0,0,0,0],
+                [0,0,0,1,0,0,0,0],
+                [0,0,0,0,1,0,0,0],
+                [0,0,0,0,0,1,0,0],
+                [0,0,0,0,0,0,1,0],
+                [0,0,0,0,0,0,0,1]]
+        for array in arrays:
+            try:
+                qvector.to_tree(array)
+            except Exception:
+                self.fail("Failed on {}".format(array))
 
     def test_mult(self):
         matrix_tree = qmatrix.to_tree(np.array(
