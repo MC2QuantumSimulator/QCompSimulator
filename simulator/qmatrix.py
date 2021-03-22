@@ -74,14 +74,14 @@ class qmatrix():
         size = 1 << qubits
         def moserDeBruijn(n): #Somewhat stolen from the interwebs. Is that a problem?
             def gen(n):
-                if n == 0:
-                    return 0
-                elif n == 1:
-                    return 1
-                elif n % 2 == 0:
-                    return 4 * gen(n // 2)
-                elif n % 2 == 1:
-                    return 4 * gen(n // 2) + 1
+                S = [0, 1]
+                for i in range(2, n + 1):
+                    if i % 2 == 0:
+                        S.append(4 * S[int(i / 2)])
+                    else:
+                        S.append(4 * S[int(i / 2)] + 1)
+                z = S[n]
+                return z
 
             sequence = []
             for i in range(n):
