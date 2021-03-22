@@ -11,7 +11,7 @@ class qvector:
 
         def __eq__(self, o: object) -> bool:
             """Assumes only one copy of earlier nodes exist"""
-            return self.conns == o.conns and self.weights == o.weights
+            return False if not o else self.conns == o.conns and self.weights == o.weights
 
     def __init__(self, root_node, weight, height):
         self.root_node = root_node
