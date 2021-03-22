@@ -4,6 +4,7 @@ parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
 import unittest
+import itertools
 from simulator.qvector import qvector
 import numpy as np
 from simulator.qmatrix import qmatrix
@@ -15,15 +16,7 @@ class TestQvector(unittest.TestCase):
         pass
 
     def test_to_tree(self):
-        arrays = [[0,0,0,0,0,0,0,0],
-                [1,0,0,0,0,0,0,0],
-                [0,1,0,0,0,0,0,0],
-                [0,0,1,0,0,0,0,0],
-                [0,0,0,1,0,0,0,0],
-                [0,0,0,0,1,0,0,0],
-                [0,0,0,0,0,1,0,0],
-                [0,0,0,0,0,0,1,0],
-                [0,0,0,0,0,0,0,1]]
+        arrays = list(map(list, itertools.product([0, 1], repeat=8)))
         for array in arrays:
             try:
                 qvector.to_tree(array)

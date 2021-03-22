@@ -37,7 +37,7 @@ class qmatrix():
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
         current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
-        matrix_index_list=qmatrix.sub_matrix_indexing(first.height) #This way of doing it is somewhat retarded.
+        matrix_index_list=qmatrix.z_order_indexing(first.height)
 
         def set_weight(current_leg):
             matrix_index=matrix_index_list[current_leg]
@@ -70,37 +70,31 @@ class qmatrix():
         return qmatrix(new_root, 1, first.height)
 
     @staticmethod
-    def sub_matrix_indexing(qubits):  # This is kind of stupid :/
-        #But it returns a list of elements that correspond to indexing in a sub-matrix way.
-        #nputing qubits = 1 would return (0,1,2,3). Inputing qubits = 2 would return (0,1,4,5,2,3,6,7....), picking one sub matrix at a time.
+    def z_order_indexing(qubits):
         size = 1 << qubits
-        q = queue.Queue()
-        list_matrix = []
-        for i in range(size ** 2):
-            list_matrix.append(i)
-        elements = []
-        q.put((list_matrix, size))
+        def moserDeBruijn(n): #Somewhat stolen from the interwebs. Is that a problem?
+            def gen(n):
+                if n == 0:
+                    return 0
+                elif n == 1:
+                    return 1
+                elif n % 2 == 0:
+                    return 4 * gen(n // 2)
+                elif n % 2 == 1:
+                    return 4 * gen(n // 2) + 1
 
-        while q.qsize() != 0:
-            (curr_matrix, size) = q.get()
-            size_half = size // 2
-            if size == 2:
-                for i in range(4):
-                    elements.append(curr_matrix[i])
-            else:
-                sub = 0
-                for elem in range(4):
-                    sub_matrix = []
-                    for i in range(size_half):
-                        for j in range(size_half):
-                            index = j + size * i + sub
-                            sub_matrix.append(curr_matrix[index])
-                    if elem == 1:
-                        sub = (size ** 2) // 2
-                    else:
-                        sub += size_half
-                    q.put((sub_matrix, size // 2))
-        return elements
+            sequence = []
+            for i in range(n):
+                sequence.append(gen(i))
+            return sequence
+
+        x = moserDeBruijn(size)
+        y = [elem * 2 for elem in x]
+        indices = []
+        for i in range(size):
+            for j in range(size):
+                indices.append(y[i]+x[j])
+        return indices
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
