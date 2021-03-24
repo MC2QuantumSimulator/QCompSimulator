@@ -154,16 +154,16 @@ class qvector:
             size = size >> 1
         return value
 
-    def measure(self, qubit, normalization):
+    def measure(self, qubit):
         import random
-        def collapse(outcome):
+        def collapse(outcome, normalization):
             if outcome:
                 not_outcome = 0
             else:
                 not_outcome = 1
 
             q = LifoQueue()
-            q.add((self.root_node , 0)) # Second part of tuple is the current qubit ( depth ). Starts q_0
+            q.put((self.root_node , 0)) # Second part of tuple is the current qubit ( depth ). Starts q_0
 
             while q.qsize() != 0:
                 (node,depth) = q.get()
@@ -171,7 +171,7 @@ class qvector:
                     for i in [0,1]:
                         q.add((node.conns(i), depth + 1))
                 else:
-                    node.conns[not_outcome] = None #How do we remove nodes that become redundant here? Garbage collection enough?
+                    node.conns[not_outcome] = None #Why are these touples again? Isn't that kind of annoying
                     node.weights[not_outcome] = 0
                     node.weights[outcome] /= normalization
 
@@ -189,10 +189,10 @@ class qvector:
 
         random = random.random() #Float between 0 and 1
         if random <= probability_zero:
-            collapse(qubit, 0, math.sqrt(probability_zero)) # Should we check if the vector is still normalized for testing purposes?
+            collapse(0, math.sqrt(probability_zero)) # Should we check if the vector is still normalized for testing purposes?
             return 0 #No need to return?
         else:
-            collapse(qubit, 1, math.sqrt(1-probability_zero))
+            collapse(1, math.sqrt(1-probability_zero))
             return 1 #No need to return?
 
 def pairwise(iterable):
