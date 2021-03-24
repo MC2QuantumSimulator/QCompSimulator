@@ -36,11 +36,32 @@ class qmatrix():
     def mult(cls, first, second):
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
+        def moserDeBruijn(size):  # Will be a vector of length 2^qubits=size
+            def gen(n):
+                S = [0, 1]
+                for i in range(2, n + 1):
+                    if i % 2 == 0:
+                        S.append(4 * S[int(i / 2)])
+                    else:
+                        S.append(4 * S[int(i / 2)] + 1)
+                z = S[n]
+                return z
+
+            sequence = []
+            for i in range(size):
+                sequence.append(gen(i))
+            return sequence
+
+        def z_order_indexing(deBruijn, size, index):
+            y = [elem * 2 for elem in deBruijn]
+            return (y[index // size] + deBruijn[index % size])
+
         current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
-        matrix_index_list=qmatrix.z_order_indexing(first.height)
+        size =1 << first.height
+        deBruijn = moserDeBruijn(size)
 
         def set_weight(current_leg):
-            matrix_index=matrix_index_list[current_leg]
+            matrix_index=z_order_indexing(deBruijn, size, current_leg)
             weight = 0
             for i in range(size):
                 weight += first.get_element_no_touple((matrix_index // size)*size + i) * second.get_element_no_touple(
@@ -68,33 +89,6 @@ class qmatrix():
                         q.put((new_node, height - 1))
 
         return qmatrix(new_root, 1, first.height)
-
-    @staticmethod
-    def z_order_indexing(qubits):
-        size = 1 << qubits
-        def moserDeBruijn(n): #Somewhat stolen from the interwebs. Is that a problem?
-            def gen(n):
-                S = [0, 1]
-                for i in range(2, n + 1):
-                    if i % 2 == 0:
-                        S.append(4 * S[int(i / 2)])
-                    else:
-                        S.append(4 * S[int(i / 2)] + 1)
-                z = S[n]
-                return z
-
-            sequence = []
-            for i in range(n):
-                sequence.append(gen(i))
-            return sequence
-
-        x = moserDeBruijn(size)
-        y = [elem * 2 for elem in x]
-        indices = []
-        for i in range(size):
-            for j in range(size):
-                indices.append(y[i]+x[j])
-        return indices
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
