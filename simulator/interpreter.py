@@ -76,6 +76,18 @@ def parse_qasm(qasm_file):
     #print(variables)
     #print(operations)
     print(q.to_vector())
+
+def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
+    "Return a circuit layer created from a single gate"
+    # Prepend gate with correct sized identity matrix
+    pre = qmatrix.id(pre_n)
+    # append identity matrix to fill up to same size as qreg
+    post = qmatrix.id(tot_len-pre_n-gate.height)
+    # Kron the trees together
+    result_pre = qmatrix.kron(pre, gate)
+    result = qmatrix.kron(result_pre, post)
+    return result
+
 if __name__ == '__main__':
     abs_qasm = os.path.join(os.path.dirname(__file__), "../inputFiles/qasm.txt")
     parse_qasm(abs_qasm)
