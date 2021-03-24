@@ -1,3 +1,4 @@
+import gc
 import math
 from queue import Queue, LifoQueue
 import numpy as np
@@ -28,16 +29,16 @@ class qvector:
         # initializing q
         q = Queue(0)
 
-        c1 = []
+        c1 = [] #List of unique nodes
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
             if weight0 == 0 and weight1 == 0:
                 node = None
                 nonzero = 0
             else:
-                nonzero = weight0 if weight0 != 0 else weight1
-                normelems = [weight0/nonzero, weight1/nonzero]
+                nonzero = weight0 if weight0 != 0 else weight1 #Factor for propagation
+                normelems = [weight0/nonzero, weight1/nonzero] #Adjust elements
                 node = qvector.node([None]*2, normelems)  # Create a leaf node from every pair.
-                copy = next((c1_elem for c1_elem in c1 if node == c1_elem), None)
+                copy = next((c1_elem for c1_elem in c1 if node == c1_elem), None) #This copies an existing node if it is equal to the one we just created?
                 if copy is not None:
                     node = copy
                 else:
@@ -48,15 +49,15 @@ class qvector:
             node0 = q.get()
             node1 = q.get()
             nodes = (node0[0], node1[0])
-            weights = (node0[1], node1[1])
+            weights = (node0[1], node1[1]) #The weight that has been propagated upwards
             if all(node is None for node in nodes):
-                qbc = [None, 0]
+                qbc = [None, 0] #qbc will be the next node of one height up?
             else:
                 nonzero = next((x for x in weights if x), None)
                 normelems = [weight / nonzero for weight in weights]
-                qnodeinner = qvector.node(nodes, normelems)
+                qnodeinner = qvector.node(nodes, normelems) #New node
                 # TODO: change to something better than O(n) (hash map eq.)
-                copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None)
+                copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None) #Check if new node is equivalent to existing one
                 if copyinner is not None:
                     qnodeinner = copyinner
                 else:
@@ -69,9 +70,6 @@ class qvector:
 
     @classmethod
     def mult(cls,matrix_tree,vector_tree):
-        #Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
-        #if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
-        current_leg=0
         def set_weight(current_leg):
             weight = 0
             for i in range(size):
@@ -81,26 +79,12 @@ class qvector:
         if (matrix_tree.height != vector_tree.height):
             raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
 
-        q=LifoQueue()
-        height=matrix_tree.height
-        size=2**height
-        new_root=cls.node([None]*2,(1,1)) #Will be root node of resulting tree.
-        q.put((new_root , height))
+        size = 2 ** matrix_tree.height
+        vec_arr_result = []
+        for current_leg in range(size):
+            vec_arr_result.append(set_weight(current_leg))
 
-        while q.qsize() != 0:
-            (curr_node,height)=q.get()
-            if height==1:
-                curr_node.weights=(set_weight(current_leg),set_weight(current_leg+1))
-                current_leg+=2
-                #A "sub tree" should be finished at this point. Possibly insert some cleanup here?
-            else:
-                for i in [1,0]:
-                    if curr_node.conns[i] is None:
-                        new_node=cls.node([None]*2,(1,1))
-                        curr_node.conns[i]=new_node
-                        q.put((new_node,height-1))
-
-        return qvector(new_root,1,matrix_tree.height)
+        return cls.to_tree(vec_arr_result)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
@@ -154,7 +138,7 @@ class qvector:
             size = size >> 1
         return value
 
-    def measure(self, qubit):
+    def measure(self, qubit): #Not tested much, but also not necessary?
         import random
         def collapse(outcome, normalization):
             if outcome:
