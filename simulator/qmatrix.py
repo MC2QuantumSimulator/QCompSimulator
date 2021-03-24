@@ -229,6 +229,19 @@ class qmatrix():
         return result
 
     @classmethod
+    def id(cls, n):
+        """Returns an identity matrix of size 2^n, equivalent to n qubits."""
+        # Create the first layer
+        origterm = cls.node(None, None)
+        identity = cls(cls.node([origterm,None,None,origterm], [1,0,0,1]), termination=origterm)
+        # Add n-1 more layers, pointing at the new result each time
+        for _ in range(n-1):
+            newterm = cls.node(None, None)
+            newnode = cls(cls.node([newterm,None,None,newterm], [1,0,0,1]), termination=newterm)
+            identity = cls.kron(identity, newnode)
+        return identity
+
+    @classmethod
     def copy(cls, original):
         """Returns a qmatrix that is separate from the original object"""
         # TODO: Use DFS instead to make a copy of a qmatrix. Prototype version; to_matrix -> to_tree
