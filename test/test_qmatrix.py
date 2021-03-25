@@ -32,20 +32,20 @@ class TestQmatrix(unittest.TestCase):
         qmat2 = qmatrix.to_tree(mat2)
         matkron = np.kron(mat1, mat2)
         qmatkron = qmatrix.kron(qmat1, qmat2)
-        self.assertTrue(np.array_equal(qmatkron.to_matrix(), matkron))
+        self.assertTrue(np.allclose(qmatkron.to_matrix(), matkron))
 
     def test_mult(self):
         first = qmatrix.to_tree(np.array(
             [[1, 6, 4, 2], [7, 3, 357, 57], [1, 264, 6, 7], [67, 3, 2, 1]]))
         second = qmatrix.to_tree(np.array(
             [[7, 5, 4, 23], [7, 34, 45, 6], [23, 7, 8, 6], [76, 89, 32, 2]]))
-        self.assertTrue(np.array_equal(qmatrix.mult(first, second).to_matrix(),
+        self.assertTrue(np.allclose(qmatrix.mult(first, second).to_matrix(),
                                        np.matmul(first.to_matrix(), second.to_matrix())))
 
     def test_mult1(self):
         first = qmatrix.to_tree(np.array([[1, 2], [3, 4]]))
         second = qmatrix.to_tree(np.array([[1, 2], [3, 4]]))
-        self.assertTrue(np.array_equal(qmatrix.mult(first, second).to_matrix(),
+        self.assertTrue(np.allclose(qmatrix.mult(first, second).to_matrix(),
                                        np.matmul(first.to_matrix(), second.to_matrix())))
 
     def test_mult2(self):
