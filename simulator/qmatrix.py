@@ -53,15 +53,19 @@ class qmatrix():
                 sequence.append(gen(i))
             return sequence
 
-        def z_order_indexing(deBruijn, size, index):
+        def z_order_indexing(deBruijn, index):
             y = [elem * 2 for elem in deBruijn]
             return (y[index // size] + deBruijn[index % size])
 
         def get_parent_order(): #Uses new root and current leg to put nodes in a list that can be used to propagate
                                 #factors upwards
             q = queue.LifoQueue()
-            current_leg_to_touple=(current_leg//size,current_leg%size)
-            sub_size=size//2
+            for i in range(size ** 2):
+                if current_leg == z_order_indexing(deBruijn, i):
+                    matrix_index = i
+                    break
+            current_leg_to_touple=(matrix_index//size,matrix_index%size)
+            sub_size= 1<<(first.height-1)
             target = new_root
             while sub_size > 0:
                 goto = 0
@@ -79,7 +83,10 @@ class qmatrix():
         deBruijn = moserDeBruijn()
 
         def set_weight(current_leg):
-            matrix_index = z_order_indexing(deBruijn, size, current_leg)
+            for i in range(size ** 2):
+                if current_leg == z_order_indexing(deBruijn, i):
+                    matrix_index = i
+                    break
             weight = 0
             for i in range(size):
                 weight += first.get_element_no_touple((matrix_index // size) * size + i) * second.get_element_no_touple(
@@ -136,7 +143,7 @@ class qmatrix():
                             curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
                             if parents.qsize() > 0:
                                 parent = parents.get()
-                                q_prop.put(parent, curr_node, propagated_factor)
+                                q_prop.put((parent, curr_node, propagated_factor))
                             else:
                                 global_weight = propagated_factor
                     copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
