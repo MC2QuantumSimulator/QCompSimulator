@@ -36,7 +36,7 @@ class qmatrix():
     def mult(cls, first, second):
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
-        def moserDeBruijn(size):  # Will be a vector of length 2^qubits=size
+        def moserDeBruijn():  # Will be a vector of length 2^qubits=size
             def gen(n):
                 S = [0, 1]
                 for i in range(2, n + 1):
@@ -52,16 +52,19 @@ class qmatrix():
                 sequence.append(gen(i))
             return sequence
 
-        def z_order_indexing(deBruijn, size, index):
+        def z_order_indexing(deBruijn, index):
             y = [elem * 2 for elem in deBruijn]
             return (y[index // size] + deBruijn[index % size])
 
         current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
         size =1 << first.height
-        deBruijn = moserDeBruijn(size)
+        deBruijn = moserDeBruijn()
 
         def set_weight(current_leg):
-            matrix_index=z_order_indexing(deBruijn, size, current_leg)
+            for i in range(size**2):
+                if current_leg == z_order_indexing(deBruijn,i):
+                    matrix_index=i
+                    break
             weight = 0
             for i in range(size):
                 weight += first.get_element_no_touple((matrix_index // size)*size + i) * second.get_element_no_touple(
@@ -87,7 +90,6 @@ class qmatrix():
                         new_node = cls.node([None] * 4, [1]*4)
                         curr_node.conns[i] = new_node
                         q.put((new_node, height - 1))
-
         return qmatrix(new_root, 1, first.height)
 
     def get_element(self, index: tuple) -> complex:
