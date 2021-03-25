@@ -37,6 +37,17 @@ class qmatrix():
     def mult(cls, first, second):
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
+
+        def z_order_better(index):
+            a = [elem * 2 for elem in deBruijn]
+            i=0
+            for y in a:
+                for x in deBruijn:
+                    if index == x + y:
+                        return i
+                    i+=1
+            print("z_order_better sucks")
+
         def moserDeBruijn():  # Will be a vector of length 2^qubits=size
             def gen(n):
                 S = [0, 1]
@@ -60,10 +71,7 @@ class qmatrix():
         def get_parent_order(): #Uses new root and current leg to put nodes in a list that can be used to propagate
                                 #factors upwards
             q = queue.LifoQueue()
-            for i in range(size ** 2):
-                if current_leg == z_order_indexing(deBruijn, i):
-                    matrix_index = i
-                    break
+            matrix_index = z_order_better(current_leg)
             current_leg_to_touple=(matrix_index//size,matrix_index%size)
             sub_size= 1<<(first.height-1)
             target = new_root
@@ -83,10 +91,7 @@ class qmatrix():
         deBruijn = moserDeBruijn()
 
         def set_weight(current_leg):
-            for i in range(size ** 2):
-                if current_leg == z_order_indexing(deBruijn, i):
-                    matrix_index = i
-                    break
+            matrix_index = z_order_better(current_leg)
             weight = 0
             for i in range(size):
                 weight += first.get_element_no_touple((matrix_index // size) * size + i) * second.get_element_no_touple(
@@ -110,6 +115,9 @@ class qmatrix():
                 curr_node.weights = [set_weight(current_leg), set_weight(current_leg + 1), set_weight(current_leg + 2),
                                      set_weight(current_leg + 3)]
                 parents = get_parent_order()
+                if parents.qsize() == 1:
+                    curr_node.conns = [termnode] * 4
+                    break
                 parent = parents.get()
                 parent = parents.get()
                 current_leg += 4
@@ -131,7 +139,7 @@ class qmatrix():
                     hej = q_prop.qsize()
                     (curr_node, child, propagated_factor) = q_prop.get()
                     child_index = curr_node.conns.index(child)
-                    curr_node.weights[child_index] = propagated_factor
+                    curr_node.weights[child_index] *= propagated_factor
                     if propagated_factor == 0:
                         curr_node.conns[child_index] = termnode
                     # Now check if factor should be propagated upwards or not.
