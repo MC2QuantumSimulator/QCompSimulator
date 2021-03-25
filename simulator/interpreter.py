@@ -79,13 +79,21 @@ def parse_qasm(qasm_file):
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     "Return a circuit layer created from a single gate"
-    # Prepend gate with correct sized identity matrix
-    pre = qmatrix.id(pre_n)
+    if pre_n > 0:
+        # Prepend gate with correct sized identity matrix
+        pre = qmatrix.id(pre_n)
+        # Kron the trees together
+        result_pre = qmatrix.kron(pre, gate)
+    else:
+        result_pre = gate
+
     # append identity matrix to fill up to same size as qreg
-    post = qmatrix.id(tot_len-pre_n-gate.height)
-    # Kron the trees together
-    result_pre = qmatrix.kron(pre, gate)
-    result = qmatrix.kron(result_pre, post)
+    post_n = tot_len-pre_n-gate.height
+    if post_n > 0:
+        post = qmatrix.id(tot_len-pre_n-gate.height)
+        result = qmatrix.kron(result_pre, post)
+    else:
+        result = result_pre
     return result
 
 if __name__ == '__main__':
