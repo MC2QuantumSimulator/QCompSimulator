@@ -1,3 +1,4 @@
+import gc
 import math
 import queue
 import numpy as np
@@ -36,7 +37,7 @@ class qmatrix():
     def mult(cls, first, second):
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
-        def moserDeBruijn(size):  # Will be a vector of length 2^qubits=size
+        def moserDeBruijn():  # Will be a vector of length 2^qubits=size
             def gen(n):
                 S = [0, 1]
                 for i in range(2, n + 1):
@@ -56,15 +57,32 @@ class qmatrix():
             y = [elem * 2 for elem in deBruijn]
             return (y[index // size] + deBruijn[index % size])
 
+        def get_parent_order(): #Uses new root and current leg to put nodes in a list that can be used to propagate
+                                #factors upwards
+            q = queue.LifoQueue()
+            current_leg_to_touple=(current_leg//size,current_leg%size)
+            sub_size=size//2
+            target = new_root
+            while sub_size > 0:
+                goto = 0
+                if current_leg_to_touple[0] & sub_size:
+                    goto += 2
+                if current_leg_to_touple[1] & sub_size:
+                    goto += 1
+                q.put(target)
+                target = target.conns[goto]
+                sub_size = sub_size >> 1
+            return q
+
         current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
-        size =1 << first.height
-        deBruijn = moserDeBruijn(size)
+        size = 1 << first.height
+        deBruijn = moserDeBruijn()
 
         def set_weight(current_leg):
-            matrix_index=z_order_indexing(deBruijn, size, current_leg)
+            matrix_index = z_order_indexing(deBruijn, size, current_leg)
             weight = 0
             for i in range(size):
-                weight += first.get_element_no_touple((matrix_index // size)*size + i) * second.get_element_no_touple(
+                weight += first.get_element_no_touple((matrix_index // size) * size + i) * second.get_element_no_touple(
                     matrix_index % size + i * size)
             return weight
 
@@ -73,22 +91,67 @@ class qmatrix():
         q = queue.LifoQueue()
         height = first.height
         size = 2 ** height
-        new_root = cls.node([None] * 4, [1]*4)  # Will be root node of resulting tree.
+        new_root = cls.node([None] * 4, [1] * 4)  # Will be root node of resulting tree.
         q.put((new_root, height))
+        termnode = qmatrix.node(None, None)
+        c1 = []
+        q_prop = queue.Queue()
+        global_weight = 1
         while q.qsize() != 0:
             (curr_node, height) = q.get()
             if height == 1:
-                curr_node.weights = (set_weight(current_leg), set_weight(current_leg+1), set_weight(current_leg+2), set_weight(current_leg+3))
-                current_leg+=4
+                curr_node.weights = [set_weight(current_leg), set_weight(current_leg + 1), set_weight(current_leg + 2),
+                                     set_weight(current_leg + 3)]
+                parents = get_parent_order()
+                parent = parents.get()
+                parent = parents.get()
+                current_leg += 4
+                curr_node.conns = [termnode] * 4
                 # A "sub tree" should be finished at this point. Possibly insert some cleanup here?
+                if all(weight == 0 for weight in curr_node.weights):
+                    curr_node = None
+                    propagated_factor = 0
+                else:
+                    propagated_factor = next((x for x in curr_node.weights if x), None)
+                    curr_node.weights = [elem / propagated_factor for elem in curr_node.weights]
+                    copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
+                    if copy is not None:
+                        curr_node = copy
+                    else:
+                        c1.append(curr_node)
+                q_prop.put((parent, curr_node, propagated_factor))
+                while q_prop.qsize() != 0:
+                    hej = q_prop.qsize()
+                    (curr_node, child, propagated_factor) = q_prop.get()
+                    child_index = curr_node.conns.index(child)
+                    curr_node.weights[child_index] = propagated_factor
+                    if propagated_factor == 0:
+                        curr_node.conns[child_index] = termnode
+                    # Now check if factor should be propagated upwards or not.
+                    else:
+                        # If prop factor is not 0, and all connections of all curr_node's children are None,
+                        # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
+                        # this node will have a child that is not None and so no further factors will be propagated.
+                        if child_index == 0 or curr_node.conns[child_index - 1] is termnode:  # Will this crash?
+                            curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
+                            if parents.qsize() > 0:
+                                parent = parents.get()
+                                q_prop.put(parent, curr_node, propagated_factor)
+                            else:
+                                global_weight = propagated_factor
+                    copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
+                    if copy is not None:
+                        curr_node = copy
+                    else:
+                        c1.append(curr_node)
             else:
                 for i in [3, 2, 1, 0]:
                     if curr_node.conns[i] is None:
-                        new_node = cls.node([None] * 4, [1]*4)
+                        new_node = cls.node([None] * 4, [1] * 4)
                         curr_node.conns[i] = new_node
                         q.put((new_node, height - 1))
 
-        return qmatrix(new_root, 1, first.height)
+        return qmatrix(new_root, global_weight, first.height)
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
