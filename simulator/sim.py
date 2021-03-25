@@ -69,12 +69,12 @@ def main():
 def write_matrix_to_file(save_matrix, qc):
     with open(save_matrix, 'w') as f:
         f.write('[')
-        for y in range(1 << qc.height):
-            if y != 0:
+        for x in range(1 << qc.height):
+            if x != 0:
                 f.write('\n')
             f.write('[')
-            for x in range(1 << qc.height):
-                string = ', ' if x != 0 else ''
+            for y in range(1 << qc.height):
+                string = ', ' if y != 0 else ''
                 string += str(qc.get_element((x, y)))
                 f.write(string)
             f.write('],')
