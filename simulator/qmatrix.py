@@ -134,31 +134,31 @@ class qmatrix():
                         curr_node = copy
                     else:
                         c1.append(curr_node)
-                q_prop.put((parent, curr_node, propagated_factor))
-                while q_prop.qsize() != 0:
-                    hej = q_prop.qsize()
-                    (curr_node, child, propagated_factor) = q_prop.get()
-                    child_index = curr_node.conns.index(child)
-                    curr_node.weights[child_index] *= propagated_factor
-                    if propagated_factor == 0:
-                        curr_node.conns[child_index] = termnode
-                    # Now check if factor should be propagated upwards or not.
-                    else:
-                        # If prop factor is not 0, and all connections of all curr_node's children are None,
-                        # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
-                        # this node will have a child that is not None and so no further factors will be propagated.
-                        if child_index == 0 or curr_node.conns[child_index - 1] is termnode:  # Will this crash?
-                            curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
-                            if parents.qsize() > 0:
-                                parent = parents.get()
-                                q_prop.put((parent, curr_node, propagated_factor))
-                            else:
-                                global_weight = propagated_factor
-                    copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
-                    if copy is not None:
-                        curr_node = copy
-                    else:
-                        c1.append(curr_node)
+                    q_prop.put((parent, curr_node, propagated_factor))
+                    while q_prop.qsize() != 0:
+                        hej = q_prop.qsize()
+                        (curr_node, child, propagated_factor) = q_prop.get()
+                        child_index = curr_node.conns.index(child)
+                        curr_node.weights[child_index] *= propagated_factor
+                        if propagated_factor == 0:
+                            curr_node.conns[child_index] = termnode
+                        # Now check if factor should be propagated upwards or not.
+                        else:
+                            # If prop factor is not 0, and all connections of all curr_node's children are None,
+                            # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
+                            # this node will have a child that is not None and so no further factors will be propagated.
+                            if child_index == 0 or curr_node.conns[child_index - 1] is termnode:  # Will this crash?
+                                curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
+                                if parents.qsize() > 0:
+                                    parent = parents.get()
+                                    q_prop.put((parent, curr_node, propagated_factor))
+                                else:
+                                    global_weight = propagated_factor
+                        copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
+                        if copy is not None:
+                            curr_node = copy
+                        else:
+                            c1.append(curr_node)
             else:
                 for i in [3, 2, 1, 0]:
                     if curr_node.conns[i] is None:
