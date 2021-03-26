@@ -107,6 +107,7 @@ class qmatrix():
 
         if (first.height != second.height):
             raise ValueError("Dimensions do not match, mult between ", first.to_matrix(), second.to_matrix())
+
         q = queue.LifoQueue() #For constructing the tree top to bottom (without weights)
         height = first.height
         size = 2 ** height
@@ -120,7 +121,7 @@ class qmatrix():
         while q.qsize() != 0:
             (curr_node, height) = q.get()
             if height == 1: #Arrived at a leaf node
-                legs=z_order_better(current_leg) #Gives corresponding matrix indices of these legs
+                legs=z_order_better(current_leg) #Gives corresponding matrix indices of the legs of current node
                 curr_node.weights = [set_weight(legs[0]), set_weight(legs[1]), set_weight(legs[2]),set_weight(legs[3])]
                 parents = get_parent_order(legs[0]) #Gets a list of the parents and the ways to traverse them to get to this leg. Used for propagation of factors
                 if parents.qsize() == 1: #Only if matrix is 2*2, no need to propagate
@@ -142,7 +143,7 @@ class qmatrix():
                     else:
                         c1.append(curr_node)
                     q_prop.put((parent,child_index, curr_node, propagated_factor)) #Here we start propagating factors up to parents.
-                while q_prop.qsize() != 0:
+                while q_prop.qsize() != 0: #This part deals with parents of parent above leaf node.
                     (curr_node,child_index, child, propagated_factor) = q_prop.get()
                     curr_node.weights[child_index] *= propagated_factor
                     if propagated_factor == 0:
