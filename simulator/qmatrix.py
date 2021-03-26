@@ -39,14 +39,30 @@ class qmatrix():
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
 
         def z_order_better(index):
-            a = [elem * 2 for elem in deBruijn]
-            i=0
-            for y in a:
-                for x in deBruijn:
-                    if index == x + y:
-                        return i
-                    i+=1
-            print("z_order_better sucks")
+            #i=0
+            #for y in deBruijn:
+            #    for x in deBruijn:
+            #        if index == x + 2*y:
+            #            return i
+            #        i+=1
+            #print("z_order_better sucks")
+            start = 0
+            sub_index = 0
+            if index >= size**2 // 2:
+                start += size**2//2
+                if index >= size**2*3//4:
+                    start+= size//2
+            elif index >= size**2 // 4:
+                start += size // 2
+
+            while index != deBruijn[start%size]+2*deBruijn[start//size]:
+                start +=1
+                sub_index+=1
+                if sub_index == size // 2:
+                    start+=size // 2
+                    sub_index = 0
+            return start
+
 
         def moserDeBruijn():  # Will be a vector of length 2^qubits=size
             def gen(n):
