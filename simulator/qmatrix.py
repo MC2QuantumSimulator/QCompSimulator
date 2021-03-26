@@ -16,7 +16,7 @@ class qmatrix():
 
         def __eq__(self, o: object) -> bool:
             """Assumes only one copy of earlier nodes exist"""
-            return self.conns == o.conns and self.weights == o.weights
+            return False if not o else (self.conns == o.conns and self.weights == o.weights)
 
         @classmethod
         def merge(cls, nodes, heights): # Add propagation of factors.
@@ -81,7 +81,7 @@ class qmatrix():
                     goto += 2
                 if current_leg_to_touple[1] & sub_size:
                     goto += 1
-                q.put(target)
+                q.put((target,goto))
                 target = target.conns[goto]
                 sub_size = sub_size >> 1
             return q
@@ -118,8 +118,8 @@ class qmatrix():
                 if parents.qsize() == 1:
                     curr_node.conns = [termnode] * 4
                     break
-                parent = parents.get()
-                parent = parents.get()
+                (parent,child_index) = parents.get()
+                (parent,child_index) = parents.get()
                 current_leg += 4
                 curr_node.conns = [termnode] * 4
                 # A "sub tree" should be finished at this point. Possibly insert some cleanup here?
@@ -134,11 +134,11 @@ class qmatrix():
                         curr_node = copy
                     else:
                         c1.append(curr_node)
-                    q_prop.put((parent, curr_node, propagated_factor))
+                    q_prop.put((parent,child_index, curr_node, propagated_factor))
                     while q_prop.qsize() != 0:
                         hej = q_prop.qsize()
-                        (curr_node, child, propagated_factor) = q_prop.get()
-                        child_index = curr_node.conns.index(child)
+                        (curr_node,child_index, child, propagated_factor) = q_prop.get()
+                        #child_index = curr_node.conns.index(child)
                         curr_node.weights[child_index] *= propagated_factor
                         if propagated_factor == 0:
                             curr_node.conns[child_index] = termnode
@@ -147,11 +147,12 @@ class qmatrix():
                             # If prop factor is not 0, and all connections of all curr_node's children are None,
                             # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
                             # this node will have a child that is not None and so no further factors will be propagated.
-                            if child_index == 0 or curr_node.conns[child_index - 1] is termnode:  # Will this crash?
+                            #if child_index == 0 or curr_node.conns[child_index - 1] is termnode:  # Will this crash? #This is bugged? Gotta check all child_index-n for all n available
+                            if all(curr_node.conns[n] is termnode for n in range(0, child_index)):
                                 curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
                                 if parents.qsize() > 0:
-                                    parent = parents.get()
-                                    q_prop.put((parent, curr_node, propagated_factor))
+                                    (parent,child_index) = parents.get()
+                                    q_prop.put((parent,child_index, curr_node, propagated_factor))
                                 else:
                                     global_weight = propagated_factor
                         copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
