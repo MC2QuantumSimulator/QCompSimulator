@@ -56,12 +56,12 @@ class qmatrix():
                 start += size // 2
 
             while index != deBruijn[start%size]+2*deBruijn[start//size]:
-                start +=1
-                sub_index+=1
+                start +=2
+                sub_index+=2
                 if sub_index == size // 2:
                     start+=size // 2
                     sub_index = 0
-            return start
+            return [start,start+1,start+size,start+size+1]
 
 
         def moserDeBruijn():  # Will be a vector of length 2^qubits=size
@@ -84,10 +84,9 @@ class qmatrix():
             y = [elem * 2 for elem in deBruijn]
             return (y[index // size] + deBruijn[index % size])
 
-        def get_parent_order(): #Uses new root and current leg to put nodes in a list that can be used to propagate
+        def get_parent_order(matrix_index): #Uses new root and current leg to put nodes in a list that can be used to propagate
                                 #factors upwards
             q = queue.LifoQueue()
-            matrix_index = z_order_better(current_leg)
             current_leg_to_touple=(matrix_index//size,matrix_index%size)
             sub_size= 1<<(first.height-1)
             target = new_root
@@ -106,8 +105,7 @@ class qmatrix():
         size = 1 << first.height
         deBruijn = moserDeBruijn()
 
-        def set_weight(current_leg):
-            matrix_index = z_order_better(current_leg)
+        def set_weight(matrix_index):
             weight = 0
             for i in range(size):
                 weight += first.get_element_no_touple((matrix_index // size) * size + i) * second.get_element_no_touple(
@@ -128,9 +126,9 @@ class qmatrix():
         while q.qsize() != 0:
             (curr_node, height) = q.get()
             if height == 1:
-                curr_node.weights = [set_weight(current_leg), set_weight(current_leg + 1), set_weight(current_leg + 2),
-                                     set_weight(current_leg + 3)]
-                parents = get_parent_order()
+                legs=z_order_better(current_leg)
+                curr_node.weights = [set_weight(legs[0]), set_weight(legs[1]), set_weight(legs[2]),set_weight(legs[3])]
+                parents = get_parent_order(legs[0])
                 if parents.qsize() == 1:
                     curr_node.conns = [termnode] * 4
                     break
