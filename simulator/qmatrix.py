@@ -63,7 +63,6 @@ class qmatrix():
                     sub_index = 0
             return [start,start+1,start+size,start+size+1]
 
-
         def moserDeBruijn():  # Will be a vector of length 2^qubits=size
             def gen(n):
                 S = [0, 1]
@@ -74,15 +73,10 @@ class qmatrix():
                         S.append(4 * S[int(i / 2)] + 1)
                 z = S[n]
                 return z
-
             sequence = []
             for i in range(size):
                 sequence.append(gen(i))
             return sequence
-
-        def z_order_indexing(deBruijn, index):
-            y = [elem * 2 for elem in deBruijn]
-            return (y[index // size] + deBruijn[index % size])
 
         def get_parent_order(matrix_index): #Uses new root and current leg to put nodes in a list that can be used to propagate
                                 #factors upwards
@@ -101,7 +95,6 @@ class qmatrix():
                 sub_size = sub_size >> 1
             return q
 
-        current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
         size = 1 << first.height
         deBruijn = moserDeBruijn()
 
@@ -114,68 +107,65 @@ class qmatrix():
 
         if (first.height != second.height):
             raise ValueError("Dimensions do not match, mult between ", first.to_matrix(), second.to_matrix())
-        q = queue.LifoQueue()
+        q = queue.LifoQueue() #For constructing the tree top to bottom (without weights)
         height = first.height
         size = 2 ** height
         new_root = cls.node([None] * 4, [1] * 4)  # Will be root node of resulting tree.
         q.put((new_root, height))
         termnode = qmatrix.node(None, None)
         c1 = []
-        q_prop = queue.Queue()
+        q_prop = queue.Queue() #Used for traversing back up, propagating factors once weights have been set. Separate queue to not affect building of remaining tree.
         global_weight = 1
+        current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
         while q.qsize() != 0:
             (curr_node, height) = q.get()
-            if height == 1:
-                legs=z_order_better(current_leg)
+            if height == 1: #Arrived at a leaf node
+                legs=z_order_better(current_leg) #Gives corresponding matrix indices of these legs
                 curr_node.weights = [set_weight(legs[0]), set_weight(legs[1]), set_weight(legs[2]),set_weight(legs[3])]
-                parents = get_parent_order(legs[0])
-                if parents.qsize() == 1:
+                parents = get_parent_order(legs[0]) #Gets a list of the parents and the ways to traverse them to get to this leg. Used for propagation of factors
+                if parents.qsize() == 1: #Only if matrix is 2*2, no need to propagate
                     curr_node.conns = [termnode] * 4
                     break
-                (parent,child_index) = parents.get()
-                (parent,child_index) = parents.get()
+                parents.get() #Getting rid of leaf node. Next one is its actual parent.
+                (parent,child_index) = parents.get() #This node's parent and index of connection
                 current_leg += 4
-                curr_node.conns = [termnode] * 4
-                # A "sub tree" should be finished at this point. Possibly insert some cleanup here?
+                curr_node.conns = [termnode] * 4 #Attaching termnode to leaf indicates it has been handled and factors have been propagated.
                 if all(weight == 0 for weight in curr_node.weights):
                     curr_node = None
                     propagated_factor = 0
                 else:
                     propagated_factor = next((x for x in curr_node.weights if x), None)
-                    curr_node.weights = [elem / propagated_factor for elem in curr_node.weights]
+                    curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
                     copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
                     if copy is not None:
                         curr_node = copy
                     else:
                         c1.append(curr_node)
-                    q_prop.put((parent,child_index, curr_node, propagated_factor))
-                    while q_prop.qsize() != 0:
-                        hej = q_prop.qsize()
-                        (curr_node,child_index, child, propagated_factor) = q_prop.get()
-                        #child_index = curr_node.conns.index(child)
-                        curr_node.weights[child_index] *= propagated_factor
-                        if propagated_factor == 0:
-                            curr_node.conns[child_index] = termnode
-                        # Now check if factor should be propagated upwards or not.
-                        else:
-                            # If prop factor is not 0, and all connections of all curr_node's children are None,
-                            # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
-                            # this node will have a child that is not None and so no further factors will be propagated.
-                            #if child_index == 0 or curr_node.conns[child_index - 1] is termnode:  # Will this crash? #This is bugged? Gotta check all child_index-n for all n available
-                            if all(curr_node.conns[n] is termnode for n in range(0, child_index)):
-                                curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
-                                if parents.qsize() > 0:
-                                    (parent,child_index) = parents.get()
-                                    q_prop.put((parent,child_index, curr_node, propagated_factor))
-                                else:
-                                    global_weight = propagated_factor
-                        copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
-                        if copy is not None:
-                            curr_node = copy
-                        else:
-                            c1.append(curr_node)
+                    q_prop.put((parent,child_index, curr_node, propagated_factor)) #Here we start propagating factors up to parents.
+                while q_prop.qsize() != 0:
+                    (curr_node,child_index, child, propagated_factor) = q_prop.get()
+                    curr_node.weights[child_index] *= propagated_factor
+                    if propagated_factor == 0:
+                        curr_node.conns[child_index] = termnode
+                    # Now check if factor should be propagated upwards or not.
+                    else:
+                        # If prop factor is not 0, and all connections of all curr_node's children are None,
+                        # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
+                        # this node will have a child that is not None and so no further factors will be propagated.
+                        if all(curr_node.conns[n] is termnode for n in range(0, child_index)): #If this is the first nonzero propagated factor then propagate
+                            curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
+                            if parents.qsize() > 0:
+                                (parent,child_index) = parents.get()
+                                q_prop.put((parent,child_index, curr_node, propagated_factor))
+                            else:
+                                global_weight = propagated_factor
+                    copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
+                    if copy is not None:
+                        curr_node = copy
+                    else:
+                        c1.append(curr_node)
             else:
-                for i in [3, 2, 1, 0]:
+                for i in [3, 2, 1, 0]: #The actual building of tree using placeholder nodes.
                     if curr_node.conns[i] is None:
                         new_node = cls.node([None] * 4, [1] * 4)
                         curr_node.conns[i] = new_node
