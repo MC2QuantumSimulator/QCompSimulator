@@ -113,29 +113,6 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     
     return gate
 
-def gate_on_qubit(vector: qvector, gate: qmatrix, qbit: int, qreg_size: int) -> qvector:
-    print(qbit)
-    if qbit != 0:
-        identity1 = qmatrix.id(1)
-        #print(identity1)
-        print(range(qbit))
-        for i in range(qbit):
-            identity1 = qmatrix.kron(identity1, qmatrix.id(1))
-
-    identity2 = qmatrix.id(1)
-    print(range(qbit, qreg_size-1))
-    for i in range(qbit, qreg_size-1):
-        print(i)
-        print(identity2.to_matrix())
-        identity2 = qmatrix.kron(identity2, qmatrix.id(1))
-
-    if qbit != 0: qmatrix.kron(identity1, gate)
-    
-    print(gate.to_matrix())
-    print(identity2.to_matrix())
-    kron = qmatrix.kron(gate, identity2)
-
-    return qvector.mult(kron, vector)
         
 
 if __name__ == '__main__':
