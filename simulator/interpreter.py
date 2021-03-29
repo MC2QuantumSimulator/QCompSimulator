@@ -20,7 +20,9 @@ def qreg(n):
 def get_int(str):
     ev = str.split('[')
 
+    # No single qbit defined, thus meaning gate should be applied to all qbits
     if len(ev) == 1: ev = -1
+    # Extracts the index of the targeted qbit
     else: ev = eval(ev[1].split(']')[0])
 
     return ev
@@ -45,8 +47,6 @@ def parse_qasm(qasm_file):
         gate_names.append(split[0].strip())
         gate_matrix.append(eval(split[1].strip())) 
     
-    #print(gate_names)
-    #print(gate_matrix)
 
     variables = []
     operations = []
@@ -80,14 +80,10 @@ def parse_qasm(qasm_file):
             for i in range(q.height):
                 p = gatepadding(gate, i, q.height)
                 q = qvector.mult(p, q)
-                #print(q.to_vector())
                 gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
+        # Applies a gate to a single qbit
         else:
-            #print(gate.to_matrix())
-            #print(qbit)
-            #print(q.height)
             p = gatepadding(gate, qbit, q.height)
-            #print(p.to_matrix())
             q = qvector.mult(p, q) 
         
         
@@ -104,12 +100,12 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     # Identity matrix of size 2^n where n is the qbit the gate should be applied on
     if pre_n != 0:
         pre = qmatrix.id(pre_n)
-        gate = qmatrix.kron(pre, gate)
+        gate = qmatrix.kron(gate, pre)
 
     # Append identity matrix to fill up to same size as qreg
     if pre_n != tot_len-1:
         post = qmatrix.id(tot_len-pre_n-height)
-        gate = qmatrix.kron(gate, post)
+        gate = qmatrix.kron(post, gate)
     
     return gate
 
