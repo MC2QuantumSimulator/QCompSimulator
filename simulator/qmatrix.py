@@ -94,9 +94,7 @@ class qmatrix():
                 sub_size = sub_size >> 1
             return q
 
-        size = 1 << first.height
-        deBruijn = moserDeBruijn(size)
-
+        
         def set_weight(matrix_index, size):
             weight = 0
             for i in range(size):
@@ -107,9 +105,10 @@ class qmatrix():
         if (first.height != second.height):
             raise ValueError("Dimensions do not match, mult between ", first.to_matrix(), second.to_matrix())
 
-        q = queue.LifoQueue() #For constructing the tree top to bottom (without weights)
         height = first.height
         size = 2 ** height
+        deBruijn = moserDeBruijn(size)
+        q = queue.LifoQueue() #For constructing the tree top to bottom (without weights)
         new_root = cls.node([None] * 4, [1] * 4)  # Will be root node of resulting tree.
         q.put((new_root, height))
         termnode = qmatrix.node(None, None)
@@ -230,8 +229,8 @@ class qmatrix():
         # possible changes: change from queue to array. This allows for parallelization better.
         """Returns a qmatrix tree from a matrix"""
         q1 = queue.Queue()
-        # list to store found unique nodes
-        c1 = []
+        # set to store found unique nodes
+        c1 = set()
         shape = matrix.shape
         if matrix.ndim != 2:
             raise ValueError("Number of array dimensions was not 2, was {}".format(matrix.ndim))
@@ -252,14 +251,13 @@ class qmatrix():
                 nonzero = 0
             else:
                 nonzero = next((x for x in elems if x), None)
-                normelems = [elem / nonzero for elem in elems]
-                qnode = qmatrix.node([termnode]*4, normelems)
-                # TODO: change to something better than O(n) (hash map eq.)
+                normelems = tuple([elem / nonzero for elem in elems])
+                qnode = qmatrix.node((termnode, termnode, termnode, termnode), normelems)
                 copy = next((c1_elem for c1_elem in c1 if qnode == c1_elem), None)
                 if copy is not None:
                     qnode = copy
                 else:
-                    c1.append(qnode)
+                    c1.add(qnode)
             q1.put([qnode, nonzero])
 
         while q1.qsize() > 1:
@@ -267,20 +265,19 @@ class qmatrix():
             node2 = q1.get()
             node3 = q1.get()
             node4 = q1.get()
-            nodes = [node1[0], node2[0], node3[0], node4[0]]
+            nodes = (node1[0], node2[0], node3[0], node4[0])
             weights = [node1[1], node2[1], node3[1], node4[1]]
             if all(node is None for node in nodes):
                 qbc = [None, 0]
             else:
                 nonzero = next((x for x in weights if x), None)
-                normelems = [weight / nonzero for weight in weights]
+                normelems = tuple([weight / nonzero for weight in weights])
                 qnodeinner = qmatrix.node(nodes, normelems)
-                # TODO: change to something better than O(n) (hash map eq.)
                 copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None)
                 if copyinner is not None:
                     qnodeinner = copyinner
                 else:
-                    c1.append(qnodeinner)
+                    c1.add(qnodeinner)
                 qbc = [qnodeinner, nonzero]
             q1.put(qbc)
         (root, weight) = q1.get()
@@ -304,6 +301,19 @@ class qmatrix():
         target.root = None
         target.termination = None
         return result
+
+    @classmethod
+    def id(cls, n):
+        """Returns an identity matrix of size 2^n, equivalent to n qubits."""
+        # Create the first layer
+        origterm = cls.node(None, None)
+        identity = cls(cls.node((origterm,None,None,origterm), (1,0,0,1)), termination=origterm)
+        # Add n-1 more layers, pointing at the new result each time
+        for _ in range(n-1):
+            newterm = cls.node(None, None)
+            newnode = cls(cls.node((newterm,None,None,newterm), (1,0,0,1)), termination=newterm)
+            identity = cls.kron(identity, newnode)
+        return identity
 
     @classmethod
     def copy(cls, original):

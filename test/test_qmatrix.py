@@ -55,8 +55,7 @@ class TestQmatrix(unittest.TestCase):
         second = qmatrix.to_tree(np.array(
         [[54,7,8,2,23,5,7,8], [6,43,3,9,7,6,4,2], [76,8,3,2,43,8,9,3], [6,9,3,3,1,7,54,2354],
          [67,8,3,45,8,8,5,2], [7,4,4,2,6,87,9,54], [7,32,5,8,9,5,432,12], [6,8,56,3,2,6,8,9]]))
-        self.assertTrue(np.allclose(qmatrix.mult(first, second).to_matrix(),
-                                    np.matmul(first.to_matrix(), second.to_matrix())))
+        self.assertTrue(np.allclose(qmatrix.mult(first, second).to_matrix(),np.matmul(first.to_matrix(), second.to_matrix())))
 
     def test_mult3(self):
         twoid = qmatrix.to_tree(np.array([[1, 0], [0, 1]]))
@@ -88,5 +87,6 @@ class TestQmatrix(unittest.TestCase):
         self.assertTrue(np.allclose(qmatrix.mult(eightid, res).to_matrix(), np.matmul(eightid.to_matrix(), res.to_matrix())))
         res = qmatrix.kron(twoid, had)
         self.assertTrue(np.allclose(qmatrix.mult(fourid, res).to_matrix(), np.matmul(fourid.to_matrix(), res.to_matrix())))
+        
 if __name__ == '__main__':
     unittest.main()
