@@ -38,7 +38,7 @@ class qmatrix():
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
 
-        def z_order_better(index):
+        def z_order_better(index, size, deBruijn):
             #i=0
             #for y in deBruijn:
             #    for x in deBruijn:
@@ -63,7 +63,7 @@ class qmatrix():
                     sub_index = 0
             return [start,start+1,start+size,start+size+1]
 
-        def moserDeBruijn():  # Will be a vector of length 2^qubits=size
+        def moserDeBruijn(size):  # Will be a vector of length 2^qubits=size
             def gen(n):
                 S = [0, 1]
                 for i in range(2, n + 1):
@@ -78,7 +78,7 @@ class qmatrix():
                 sequence.append(gen(i))
             return sequence
 
-        def get_parent_order(matrix_index): #Uses new root and current leg to put nodes in a list that can be used to propagate
+        def get_parent_order(matrix_index, first): #Uses new root and current leg to put nodes in a list that can be used to propagate
                                 #factors upwards
             q = queue.LifoQueue()
             current_leg_to_touple=(matrix_index//size,matrix_index%size)
@@ -96,9 +96,9 @@ class qmatrix():
             return q
 
         size = 1 << first.height
-        deBruijn = moserDeBruijn()
+        deBruijn = moserDeBruijn(size)
 
-        def set_weight(matrix_index):
+        def set_weight(matrix_index, size):
             weight = 0
             for i in range(size):
                 weight += first.get_element_no_touple((matrix_index // size) * size + i) * second.get_element_no_touple(
@@ -121,9 +121,9 @@ class qmatrix():
         while q.qsize() != 0:
             (curr_node, height) = q.get()
             if height == 1: #Arrived at a leaf node
-                legs=z_order_better(current_leg) #Gives corresponding matrix indices of the legs of current node
-                curr_node.weights = [set_weight(legs[0]), set_weight(legs[1]), set_weight(legs[2]),set_weight(legs[3])]
-                parents = get_parent_order(legs[0]) #Gets a list of the parents and the ways to traverse them to get to this leg. Used for propagation of factors
+                legs=z_order_better(current_leg, size, deBruijn) #Gives corresponding matrix indices of the legs of current node
+                curr_node.weights = [set_weight(legs[0], size), set_weight(legs[1], size), set_weight(legs[2], size),set_weight(legs[3], size)]
+                parents = get_parent_order(legs[0], first) #Gets a list of the parents and the ways to traverse them to get to this leg. Used for propagation of factors
                 if parents.qsize() == 1: #Only if matrix is 2*2, no need to propagate
                     curr_node.conns = [termnode] * 4
                     break
