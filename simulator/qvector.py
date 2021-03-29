@@ -10,6 +10,9 @@ class qvector:
             self.conns = conns
             self.weights = weights
 
+        def __hash__(self) -> int:
+            return hash((self.conns, self.weights))
+
         def __eq__(self, o: object) -> bool:
             """Assumes only one copy of earlier nodes exist"""
             return False if not o else self.conns == o.conns and self.weights == o.weights
