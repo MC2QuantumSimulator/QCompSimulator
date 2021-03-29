@@ -28,6 +28,8 @@ def get_int(str):
     return ev
 
 
+
+# Returns a list of qmatrixs to use on the qvector
 def parse_qasm(qasm_file):
     f_qasm = open(qasm_file, "r")
     qasm_string = f_qasm.readlines() 
@@ -51,6 +53,8 @@ def parse_qasm(qasm_file):
     variables = []
     operations = []
 
+    qmats = [] # List of qmatrixes to use on the qvector
+
     q = None
     # Splits qasm into variable name and
     for line in qasm_string:
@@ -70,26 +74,31 @@ def parse_qasm(qasm_file):
             continue
 
     for index, var in enumerate(variables):
+
         ivar = gate_names.index(var)
         gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
         qbit = get_int(operations[index])
         p = None
+        temp = qmatrix.id(q.height)
 
         # Applies a gate to every qbit
         if qbit == -1: 
             for i in range(q.height):
                 p = gatepadding(gate, i, q.height)
-                q = qvector.mult(p, q)
+                temp = qmatrix.mult(temp, p)
                 gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
+
         # Applies a gate to a single qbit
         else:
-            p = gatepadding(gate, qbit, q.height)
-            q = qvector.mult(p, q) 
+            temp = gatepadding(gate, qbit, q.height)
         
+        qmats.append(temp) # Adds qmatrix to later apply to qvector
         
-    #print(variables)
-    #print(operations)
-    print(q.to_vector())
+    #for qmat in qmats:
+    #    q = qvector.mult(qmat, q)
+    #print(q.to_vector())
+    
+    return qmats
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     "Return a circuit layer created from a single gate"
