@@ -78,26 +78,24 @@ def parse_qasm(qasm_file, gate_file):
         ivar = gate_names.index(var)
         gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
         qbit = get_int(operations[index])
-        p = None
-        temp = qmatrix.id(q.height)
 
         # Applies a gate to every qbit
         if qbit == -1: 
             for i in range(q.height):
-                p = gatepadding(gate, i, q.height)
-                temp = qmatrix.mult(temp, p)
+                qmats.append(gatepadding(gate, i, q.height))
                 gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
-
+            #q = qvector.mult(temp, q)
         # Applies a gate to a single qbit
         else:
-            temp = gatepadding(gate, qbit, q.height)
+            qmats.append(gatepadding(gate, qbit, q.height))
         
-        qmats.append(temp) # Adds qmatrix to later apply to qvector
-        
+        #qmats.append(temp) # Adds qmatrix to later apply to qvector
+
+    # DEBUGGING    
     #for qmat in qmats:
     #    q = qvector.mult(qmat, q)
     #print(q.to_vector())
-    
+
     return qmats, q.height
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
