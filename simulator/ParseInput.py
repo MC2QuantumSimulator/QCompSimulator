@@ -12,11 +12,12 @@ def is_unitary(matrix):
 class ParseInput:
 
 
-    def input_gates(input_file):
+    def parse_gates(input_file):
         
         f = open(input_file, 'r')
         gates_string_list = f.readlines()
         f.close()
+
         gates_string_form = []
         gate_names = []
         gates_matrix_form = []
@@ -63,38 +64,22 @@ class ParseInput:
         for index in range(len(not_unitary)-1,-1,-1):
             gate_names.pop(not_unitary[index])
 
+        lines = []
+        for index in range(len(gate_names)):
+            lines.append(gate_names[index] + " = " + repr(gates_matrix_form[index]))
+
         return gate_names, gates_matrix_form
 
-    
-    def output_gates(output_file, input_gates):
-
-        f = open(output_file, 'r')
-        gates_existing = f.readlines()
-        f.close()
-        f = open(output_file, 'a')
-        gates_names = []
-
-        # Collects the name of existing gates
-        for gate in gates_existing:
-            gates_names.append(gate.split()[0])
-
-        # Adds a gate if it doesn't
-        for index in range(len(input_gates[0])):
-            if input_gates[0][index] in gates_names: continue
-            line = input_gates[0][index] + " = " + repr(input_gates[1][index]) + "\n"
-            f.write(line)
-            
-            
 
 
 
     if __name__ == '__main__':
-        abs_input = os.path.join(os.path.dirname(__file__), "../inputFiles/gates_input.txt") # Always gives the correct path (atleast for Linux)
-        abs_output = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt")
+        abs_input = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt") # Always gives the correct path (atleast for Linux)
         
-        gates = input_gates(abs_input)
         
-        output_gates(abs_output, gates)
+        gates = parse_gates(abs_input)
+        
+        #output_gates(abs_output, gates)
        
 
             

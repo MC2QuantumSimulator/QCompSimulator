@@ -46,7 +46,9 @@ def main():
     #    print(matnames[i])
     #    print(mat)
 
-    qmats, height = interpreter.parse_qasm(circuitpath, gatespath)
+    gate_names, gate_matrix = ParseInput.ParseInput.parse_gates(gatespath)
+
+    qmats, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
 
     q = interpreter.qreg(height)
 

@@ -4,6 +4,7 @@ import math
 import numpy as np
 from qvector import qvector
 from qmatrix import qmatrix
+import ParseInput
 
 
 headers = ['OPENQASM', 'include']
@@ -30,24 +31,10 @@ def get_int(str):
 
 
 # Returns a list of qmatrixs to use on the qvector
-def parse_qasm(qasm_file, gate_file):
+def parse_qasm(qasm_file, gate_names, gate_matrix):
     f_qasm = open(qasm_file, "r")
     qasm_string = f_qasm.readlines() 
     f_qasm.close()
-
-    
-    f_gate = open(gate_file, "r")
-    gates_string = f_gate.readlines()
-    f_gate.close()
-
-    gate_names = []
-    gate_matrix = []
-    
-    # Appends gates' names and matrix'
-    for line in gates_string:
-        split = line.split('=')
-        gate_names.append(split[0].strip())
-        gate_matrix.append(eval(split[1].strip())) 
     
 
     variables = []
@@ -84,12 +71,11 @@ def parse_qasm(qasm_file, gate_file):
             for i in range(q.height):
                 qmats.append(gatepadding(gate, i, q.height))
                 gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
-            #q = qvector.mult(temp, q)
+       
         # Applies a gate to a single qbit
         else:
             qmats.append(gatepadding(gate, qbit, q.height))
         
-        #qmats.append(temp) # Adds qmatrix to later apply to qvector
 
     # DEBUGGING    
     #for qmat in qmats:
@@ -121,6 +107,6 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
 if __name__ == '__main__':
     abs_qasm = os.path.join(os.path.dirname(__file__), "../inputFiles/qasm.txt")
     abs_gates = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt")
-    parse_qasm(abs_qasm, abs_gates)
-    #q = qreg(3)
-    #print(q)
+    gate_names, gate_matrix = ParseInput.ParseInput.parse_gates(abs_gates) 
+    parse_qasm(abs_qasm, gate_names, gate_matrix)
+    
