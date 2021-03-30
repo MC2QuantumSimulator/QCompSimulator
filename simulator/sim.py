@@ -43,13 +43,14 @@ def main():
             print('num of reps: {}'.format(shots))
         print('Save state:  {}'.format(savestate))
 
-    # pass the gates path to ParseInput ant print the returned lists
-    #matnames, matlist = ParseInput.ParseInput.parse_gates(gatespath)
-    #for i, mat in enumerate(matlist):
-    #    print(matnames[i])
-    #    print(mat)
-
     gate_names, gate_matrix = ParseInput.ParseInput.parse_gates(gatespath)
+
+    if debug:
+        print('\nList of all gates:')
+        # pass the gates path to ParseInput ant print the returned lists
+        for i, mat in enumerate(gate_matrix):
+            print('{} = {}'.format(gate_names[i],mat))
+        print('')
 
     qmats, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
 
