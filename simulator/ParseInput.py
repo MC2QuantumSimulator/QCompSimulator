@@ -35,10 +35,11 @@ class ParseInput:
             gate_size.append(split[2])
 
         for index ,gate in enumerate(gates_string_form):
-            dimension = eval(gate_size.pop())
+            dimension = eval(gate_size.pop(0))
             matrix = [[0 for _ in range(dimension)] for _ in range(dimension)]
             rows = gate.split(';')
-
+            
+            
             # Splitting into a list containing all elements in string form
             elements = []
             for row in rows:
@@ -46,8 +47,10 @@ class ParseInput:
                 tmp = tmp.split(',')
                 elements = elements + tmp
 
+            
             # Put elements in matrix
             for i in range(dimension):
+
                 for j in range(dimension):
                     matrix[i][j] = fourFn.eval(elements.pop(0))
 
