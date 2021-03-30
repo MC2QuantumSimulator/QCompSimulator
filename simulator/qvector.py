@@ -141,7 +141,12 @@ class qvector:
             size = size >> 1
         return value
 
-    def measure(self, qubit): #Not tested much, but also not necessary?
+    def measure(self):
+        vector=self.to_vector()
+        res = [abs(x)**2 for x in vector]
+        return res
+
+    def measureSingle(self, qubit): #Not tested much, but also not necessary?
         import random
         def collapse(outcome, normalization):
             if outcome:
