@@ -22,7 +22,8 @@ def main():
     group.add_argument('--state', help='Print the final vector to path instead of calculating probabilities')
     # Save the matrix instead of calculating anything with it
     group.add_argument('--saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
-
+    # Debug: print extra info
+    parser.add_argument('--debug', action='store_true', help='Print extra debug info')
     args = parser.parse_args()
 
     gatespath = args.gates
@@ -31,14 +32,16 @@ def main():
     shots = args.shots
     savestate = args.state
     save_matrix = args.saveMatrix
+    debug = args.debug
 
-    # Print out the input to see that it worked
-    print('gatepath:    ' + gatespath)
-    print('circuitpath: ' + circuitpath)
-    print('input state: ' + ('No input, defaulting to |0>' if not inputstate else inputstate))
-    if shots:
-        print('num of reps: {}'.format(shots))
-    print('Save state:  {}'.format(savestate))
+    if debug:
+        # Print out the input to see that it worked
+        print('gatepath:    ' + gatespath)
+        print('circuitpath: ' + circuitpath)
+        print('input state: ' + ('No input, defaulting to |0>' if not inputstate else inputstate))
+        if shots:
+            print('num of reps: {}'.format(shots))
+        print('Save state:  {}'.format(savestate))
 
     # pass the gates path to ParseInput ant print the returned lists
     #matnames, matlist = ParseInput.ParseInput.parse_gates(gatespath)
