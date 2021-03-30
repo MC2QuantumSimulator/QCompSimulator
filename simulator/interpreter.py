@@ -30,13 +30,13 @@ def get_int(str):
 
 
 # Returns a list of qmatrixs to use on the qvector
-def parse_qasm(qasm_file):
+def parse_qasm(qasm_file, gate_file):
     f_qasm = open(qasm_file, "r")
     qasm_string = f_qasm.readlines() 
     f_qasm.close()
 
-    abs_gates = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt")
-    f_gate = open(abs_gates, "r")
+    
+    f_gate = open(gate_file, "r")
     gates_string = f_gate.readlines()
     f_gate.close()
 
@@ -98,7 +98,7 @@ def parse_qasm(qasm_file):
     #    q = qvector.mult(qmat, q)
     #print(q.to_vector())
     
-    return qmats
+    return qmats, q.height
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     "Return a circuit layer created from a single gate"
@@ -122,6 +122,7 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
 
 if __name__ == '__main__':
     abs_qasm = os.path.join(os.path.dirname(__file__), "../inputFiles/qasm.txt")
-    parse_qasm(abs_qasm)
+    abs_gates = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt")
+    parse_qasm(abs_qasm, abs_gates)
     #q = qreg(3)
     #print(q)

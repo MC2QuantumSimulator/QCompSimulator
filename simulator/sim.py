@@ -4,6 +4,7 @@ import ParseInput
 import circuitBuilder
 from qmatrix import qmatrix
 from qvector import qvector
+import interpreter as interpreter
 
 def main():
     parser = argparse.ArgumentParser(description='Tree based qasm sim.')
@@ -40,31 +41,42 @@ def main():
     print('Save state:  {}'.format(savestate))
 
     # pass the gates path to ParseInput ant print the returned lists
-    matnames, matlist = ParseInput.ParseInput.parse_gates(gatespath)
-    for i, mat in enumerate(matlist):
-        print(matnames[i])
-        print(mat)
+    #matnames, matlist = ParseInput.ParseInput.parse_gates(gatespath)
+    #for i, mat in enumerate(matlist):
+    #    print(matnames[i])
+    #    print(mat)
+
+    qmats, height = interpreter.parse_qasm(circuitpath, gatespath)
+
+    q = interpreter.qreg(height)
+
+    for qmat in qmats:
+        q = qvector.mult(qmat, q)
+    print(q.to_vector())
+
+    
+
 
     # Returns a matrix tree when passed a path to the qasm file and the parsed gates (or call parse gates from this func?)
     # Should circuitBuilder be a class that also includes measurment funcs and such or should that be in a different place?
     # TODO: Repalce with actual qasm parser & circuit builder
-    qc = circuitBuilder.build_circuit(np.array(matlist[0]))
+    #qc = circuitBuilder.build_circuit(np.array(matlist[0]))
 
     # Prints the resulting matrix in a Python/Matlab compatible format
     # TODO: Make it possible to output mathematical 'stuff' (exp, roots)
     # TODO: parse input states, currently no input state can be parsed, only default works
-    if save_matrix:
-        write_matrix_to_file(save_matrix, qc)
-    else:
-        if not inputstate:
-            input_vector = np.zeros(1<<qc.height)
-            input_vector[0] = 1
-        input_tree = qvector.to_tree(input_vector)
-        qv = qvector.mult(qc, input_tree)
-
-        if savestate:
-            with open(savestate, 'w') as f:
-                f.write(str(qv.to_vector()))
+    #if save_matrix:
+    #    write_matrix_to_file(save_matrix, qc)
+    #else:
+    #    if not inputstate:
+    #        input_vector = np.zeros(1<<height)
+    #        input_vector[0] = 1
+    #    input_tree = qvector.to_tree(input_vector)
+    #    qv = qvector.mult(qc, input_tree)
+#
+    #    if savestate:
+    #        with open(savestate, 'w') as f:
+    #            f.write(str(qv.to_vector()))
 
 def write_matrix_to_file(save_matrix, qc):
     with open(save_matrix, 'w') as f:
