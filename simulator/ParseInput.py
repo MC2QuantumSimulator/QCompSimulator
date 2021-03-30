@@ -12,16 +12,21 @@ def is_unitary(matrix):
 class ParseInput:
 
 
-    def parse_gates(test_file):
+    def parse_gates(input_file):
         
-        f = open(test_file, 'r')
+        f = open(input_file, 'r')
         gates_string_list = f.readlines()
+        f.close()
+
         gates_string_form = []
         gate_names = []
         gates_matrix_form = []
         gate_size = []
+        not_unitary = []
 
-        # split the matrices into separate lists containing, name, elements and dimension
+
+
+        # Split the matrices into separate lists containing, name, elements and dimension
         for gate in gates_string_list:
             gate = "".join(gate.split())
             split = gate.split('=')
@@ -49,16 +54,32 @@ class ParseInput:
             # Checks if matrix is unitary and adds it to 'gates_matrix_form' if so        
             if not is_unitary(np.matrix(matrix)):
                 print(gate_names[index] + ": is not unitary")
-                gate_names.pop(index)
+                #gate_names.pop(index)
+                not_unitary.append(index)
                 continue
 
             gates_matrix_form.append(matrix)
+        
+        # Deletes the non-unitary gate names.
+        for index in range(len(not_unitary)-1,-1,-1):
+            gate_names.pop(not_unitary[index])
+
+        lines = []
+        for index in range(len(gate_names)):
+            lines.append(gate_names[index] + " = " + repr(gates_matrix_form[index]))
 
         return gate_names, gates_matrix_form
 
+
+
+
     if __name__ == '__main__':
-        abs_path = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt") # Always gives the correct path (atleast for Linux)
-        g = parse_gates(abs_path)
-        # ----------for debugging-------
-        for gate in g:
-            print(gate)
+        abs_input = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt") # Always gives the correct path (atleast for Linux)
+        
+        
+        gates = parse_gates(abs_input)
+        
+        #output_gates(abs_output, gates)
+       
+
+            
