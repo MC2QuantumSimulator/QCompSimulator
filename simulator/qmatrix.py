@@ -33,6 +33,29 @@ class qmatrix():
         self.termination = termination
 
     @classmethod
+    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple):
+        if not first:
+            return second
+        if not second:
+            return first
+        weight_parent_sum = sum(weights_parent)
+        weights_here1 = tuple([x*weights_parent[0] for x in first.weights])
+        #weights_here1 = tuple([x*y for x,y in zip(first.weights,weights_parent)])
+        weights_here2 = tuple([x*weights_parent[1] for x in second.weights])
+        #weights_here2 = tuple([x*y for x,y in zip(second.weights,weights_parent)])
+        weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
+        weight_div = tuple([x/weight_parent_sum for x in weights_here])
+        if height <= 1:
+            return cls.node((None, None, None, None), weight_div)
+        conns = [cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1])) for x,y,z,w in zip(first.conns, second.conns, first.weights, second.weights)]
+        return cls.node(conns, weight_div)
+
+    @classmethod
+    def add_matrices(cls, first, second):
+        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight))
+        return cls(new_node, first.weight+second.weight, first.height, first.termination)
+
+    @classmethod
     def mult(cls, first, second):
         # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
         # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
