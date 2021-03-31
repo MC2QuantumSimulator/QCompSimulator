@@ -52,16 +52,6 @@ def main():
             print('{} = {}'.format(gate_names[i],mat))
         print('')
 
-    qmats, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
-
-    q = interpreter.qreg(height)
-
-    for qmat in qmats:
-        q = qvector.mult(qmat, q)
-    print(q.to_vector())
-    print(q.measure())
-
-    
 
 
     # Returns a matrix tree when passed a path to the qasm file and the parsed gates (or call parse gates from this func?)
@@ -72,18 +62,25 @@ def main():
     # Prints the resulting matrix in a Python/Matlab compatible format
     # TODO: Make it possible to output mathematical 'stuff' (exp, roots)
     # TODO: parse input states, currently no input state can be parsed, only default works
-    #if save_matrix:
-    #    write_matrix_to_file(save_matrix, qc)
-    #else:
-    #    if not inputstate:
-    #        input_vector = np.zeros(1<<height)
-    #        input_vector[0] = 1
-    #    input_tree = qvector.to_tree(input_vector)
-    #    qv = qvector.mult(qc, input_tree)
-#
-    #    if savestate:
-    #        with open(savestate, 'w') as f:
-    #            f.write(str(qv.to_vector()))
+
+    qmats, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
+
+    if save_matrix:
+        #write_matrix_to_file(save_matrix, qc)
+        y = 9
+    else:
+        if not inputstate:
+            input_vector = np.zeros(1<<height)
+            input_vector[0] = 1
+            qv = qvector.to_tree(input_vector)
+        for qmat in qmats:
+            qv = qvector.mult(qmat, qv)
+        print(qv.to_vector())
+        print(qv.measure())
+
+        if savestate:
+            with open(savestate, 'w') as f:
+                f.write(str(qv.to_vector()))
 
 def write_matrix_to_file(save_matrix, qc):
     with open(save_matrix, 'w') as f:

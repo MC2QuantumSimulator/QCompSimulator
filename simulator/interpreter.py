@@ -10,12 +10,7 @@ import ParseInput
 
 headers = ['OPENQASM', 'include']
 
-# Creates a qvector of n qbits in the state 0
-def qreg(n):
-    vector = [0]*pow(2,n)
-    vector[0] = 1
-    
-    return qvector.to_tree((np.array(vector)))
+
 
 # Gets the index of the qbit between '[]'. 
 # Returns '-1' if a gate should be applied to all qbits
@@ -51,7 +46,7 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
 
         # Creates quantum register of n bits
         if var == 'qreg':
-            q = qreg(get_int(split[1]))
+            height = get_int(split[1])
         # If the gate is supported append var and op
         elif var in gate_names: 
             variables.append(split[0])
@@ -69,21 +64,18 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
         
         # Applies a gate to every q bit
         if qbit == -1: 
-            for i in range(q.height):
-                qmats.append(gatepadding(gate, i, q.height))
+            for i in range(height):
+                qmats.append(gatepadding(gate, i, height))
                 gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
        
         # Applies a gate to a single qbit
         else:
-            qmats.append(gatepadding(gate, qbit, q.height))
+            qmats.append(gatepadding(gate, qbit, height))
         
 
-    # DEBUGGING    
-    #for qmat in qmats:
-    #    q = qvector.mult(qmat, q)
-    #print(q.to_vector())
+    
 
-    return qmats, q.height
+    return qmats, height
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     "Return a circuit layer created from a single gate"
