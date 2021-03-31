@@ -58,6 +58,7 @@ def main():
     for qmat in qmats:
         q = qvector.mult(qmat, q)
     print(q.to_vector())
+    print(q.measure())
 
     
 

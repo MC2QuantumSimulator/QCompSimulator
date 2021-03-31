@@ -2,6 +2,7 @@ import qiskit as qs
 import os
 import math
 import numpy as np
+import sys
 from qvector import qvector
 from qmatrix import qmatrix
 import ParseInput
@@ -57,15 +58,15 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
             operations.append(split[1])
         # Warns that the gate is not supported
         elif var not in headers:
-            print(var + " is not supported")
-            continue
+            sys.exit("Error: " + var + " is not supported")
+            
 
     for index, var in enumerate(variables):
 
         ivar = gate_names.index(var)
         gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
         qbit = get_int(operations[index])
-        print(gate.to_matrix())
+        
         # Applies a gate to every q bit
         if qbit == -1: 
             for i in range(q.height):
