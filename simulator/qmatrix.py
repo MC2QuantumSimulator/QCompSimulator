@@ -33,16 +33,14 @@ class qmatrix():
         self.termination = termination
 
     @classmethod
-    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple):
+    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple) -> node:
         if not first:
             return second
         if not second:
             return first
         weight_parent_sum = sum(weights_parent)
         weights_here1 = tuple([x*weights_parent[0] for x in first.weights])
-        #weights_here1 = tuple([x*y for x,y in zip(first.weights,weights_parent)])
         weights_here2 = tuple([x*weights_parent[1] for x in second.weights])
-        #weights_here2 = tuple([x*y for x,y in zip(second.weights,weights_parent)])
         weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
         weight_div = tuple([x/weight_parent_sum for x in weights_here])
         if height <= 1:
@@ -54,6 +52,19 @@ class qmatrix():
     def add_matrices(cls, first, second):
         new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight))
         return cls(new_node, first.weight+second.weight, first.height, first.termination)
+
+    @classmethod
+    def mult_nodes(cls, first: node, second: node, height: int, weights_parent: tuple) -> node:
+        newweightsleft = (first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1)))
+        newweightsright = (first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3)))
+        new_weights_parent_left = 
+        new_weights_parent_right = 
+        newconnsleft = (cls.mult_nodes(first.weights[x], second.weights[y], height-1, new_weights_parent_left) for x,y in zip((0,0,2,2),(0,1,0,1)))
+        newconnsright = (cls.mult_nodes(first.weights[x], second.weights[y], height-1, new_weights_parent_right) for x,y in zip((1,1,3,3),(2,3,2,3)))
+        newleft = cls.node(newconnsleft, newweightsleft)
+        newright = cls.node(newconnsright, newweightsright)
+        result = cls.add_nodes(newleft, newright, height, weights_parent)
+        return result
 
     @classmethod
     def mult(cls, first, second):
