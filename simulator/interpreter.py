@@ -75,7 +75,6 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
             qmat = qmatrix.mult(q,qmat)
         
 
-
     return qmat, height
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
