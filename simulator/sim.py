@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+import os
 import ParseInput
 import circuitBuilder
 from qmatrix import qmatrix
@@ -34,6 +35,8 @@ def main():
     save_matrix = args.saveMatrix
     debug = args.debug
 
+    abs_output = os.path.join(os.path.dirname(__file__), "../outputFiles/output.txt")
+
     if debug:
         # Print out the input to see that it worked
         print('gatepath:    ' + gatespath)
@@ -63,24 +66,49 @@ def main():
     # TODO: Make it possible to output mathematical 'stuff' (exp, roots)
     # TODO: parse input states, currently no input state can be parsed, only default works
 
-    qmats, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
+    qmat, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
+    
 
     if save_matrix:
         #write_matrix_to_file(save_matrix, qc)
         y = 9
     else:
-        if not inputstate:
+        inputs = [] #
+        outputstates = []
+
+        if inputstate:
+            f = open(inputstate, 'r')
+            for state in eval(f.read()):
+                inputs.append(state)
+            f.close()
+        else:
             input_vector = np.zeros(1<<height)
             input_vector[0] = 1
-            qv = qvector.to_tree(input_vector)
-        for qmat in qmats:
-            qv = qvector.mult(qmat, qv)
-        print(qv.to_vector())
-        print(qv.measure())
+            inputs.append(input_vector)
+           
 
+        for state in inputs:
+            qv = qvector.to_tree(state)
+            outputstates.append(qvector.mult(qmat,qv))
+        
+        for output in outputstates:
+            print("")
+            print("Statevector: " + repr(output.to_vector()))
+            print("Probability: " + repr(output.measure()))
+        
+
+        # Prints either state or output vectors
         if savestate:
-            with open(savestate, 'w') as f:
-                f.write(str(qv.to_vector()))
+            with open(abs_output, 'w') as f:
+                f.write("State vectors: \n")
+                for output in outputstates:
+                    f.write(repr(output.to_vector()) + "\n")
+        else:
+            with open(abs_output, 'w') as f:
+                f.write("Probabillity vectors: \n")
+                for output in outputstates:
+                    f.write(repr(output.measure()) + "\n")
+                
 
 def write_matrix_to_file(save_matrix, qc):
     with open(save_matrix, 'w') as f:
