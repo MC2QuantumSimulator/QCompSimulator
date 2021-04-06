@@ -7,6 +7,7 @@
 # Removed unnecessary expr.suppress() call (thanks Nathaniel Peterson!), and added Group
 # Changed fnumber to use a Regex, which is now the preferred method
 # Reformatted to latest pypyparsing features, support multiple and variable args to functions
+# From this project QuantumSim: Added functionality for using imaginary number i.
 #
 # View original code at https://github.com/pyparsing/pyparsing/blob/master/examples/fourFn.py
 # Copyright 2003-2019 by Paul McGuire
