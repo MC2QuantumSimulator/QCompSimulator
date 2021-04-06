@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 import os
+import random
 import ParseInput
 import circuitBuilder
 from qmatrix import qmatrix
@@ -18,7 +19,7 @@ def main():
     parser.add_argument('-i', dest='input_state', help='File with input state(s)')
     group = parser.add_mutually_exclusive_group()
     # Numbers of shots to return
-    group.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int)
+    group.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int) #TODO
     # Wether to save the final vector or calculate probabilities
     group.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
     # Save the matrix instead of calculating anything with it
@@ -54,6 +55,9 @@ def main():
         for i, mat in enumerate(gate_matrix):
             print('{} = {}'.format(gate_names[i],mat))
         print('')
+
+
+    if not shots: shots = 1024
 
 
 
@@ -92,7 +96,7 @@ def main():
         for output in outputstates:
             print("")
             print("Statevector: " + repr(output.to_vector()))
-            print("Probability: " + repr(output.measure()))
+            #print("Probability: " + repr(measure(output.to_vector(),shots)))
         
 
         # Prints either state or output vectors
@@ -105,7 +109,7 @@ def main():
             with open(abs_output, 'w') as f:
                 f.write("Probabillity vectors: \n")
                 for output in outputstates:
-                    f.write(repr(output.measure()) + "\n")
+                    f.write(repr(measure(output.to_vector(),shots)) + "\n")
                 
 
 def write_matrix_to_file(save_matrix, qc):
@@ -126,6 +130,29 @@ def write_matrix_to_file(save_matrix, qc):
         
         f.write(']')
 
+
+
+def measure(vector, reps):
+    
+    probs = [round(abs(x)**2,7) for x in vector]
+    result = [0]*len(vector)
+    
+    for x in range(reps):
+        sum = 0.0
+        collapse = random.random()
+        for index, prob in enumerate(probs):  
+            if collapse <= prob + sum:
+                result[index] = result[index] + 1
+                break
+            sum += prob
+            
+        
+    
+    for index in range(len(result)):
+        result[index] /= reps
+
+
+    return result
 
 if __name__ == '__main__':
     main()
