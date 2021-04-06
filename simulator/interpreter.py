@@ -36,7 +36,6 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
     variables = []
     operations = []
 
-    qmats = [] # List of qmatrixes to use on the qvector
 
     q = None
     # Splits qasm into variable name and
@@ -47,6 +46,7 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
         # Creates quantum register of n bits
         if var == 'qreg':
             height = get_int(split[1])
+            qmat = qmatrix.id(height) # The qmatrix that will acumulate all the operations
         # If the gate is supported append var and op
         elif var in gate_names: 
             variables.append(split[0])
@@ -65,27 +65,22 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
         # Applies a gate to every q bit
         if qbit == -1: 
             for i in range(height):
-                qmats.append(gatepadding(gate, i, height))
+                q = gatepadding(gate, i, height)
+                qmat = qmatrix.mult(q,qmat)
                 gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
        
         # Applies a gate to a single qbit
         else:
-            qmats.append(gatepadding(gate, qbit, height))
+            q = gatepadding(gate, qbit, height)
+            qmat = qmatrix.mult(q,qmat)
         
 
-    
-
-    return qmats, height
+    return qmat, height
 
 def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     "Return a circuit layer created from a single gate"
     
     height = gate.height
-    #print(pre_n)
-    #print(height)
-    #if gate.height == 2:
-    #    height -= 1
-    #print(height)
     
     # Size of identity gate before gate represents which qbit the gate should be applied on
     # Identity matrix of size 2^n where n is the qbit the gate should be applied on
@@ -98,6 +93,7 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
         post = qmatrix.id(tot_len-pre_n-height)
         gate = qmatrix.kron(post, gate)
     
+    #print(gate.to_matrix())
     return gate
 
         
