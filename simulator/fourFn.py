@@ -25,6 +25,7 @@ from pyparsing import (
     delimitedList,
 )
 import math
+import cmath
 import operator
 
 exprStack = []
@@ -149,6 +150,8 @@ def evaluate_stack(s):
         return math.pi  # 3.1415926535
     elif op == "E":
         return math.e  # 2.718281828
+    elif op == "i":
+        return cmath.sqrt(-1)
     elif op in fn:
         # note: args are pushed onto the stack in reverse order
         args = reversed([evaluate_stack(s) for _ in range(num_args)])
