@@ -50,21 +50,31 @@ class qmatrix():
 
     @classmethod
     def add_matrices(cls, first, second):
-        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight))
-        return cls(new_node, first.weight+second.weight, first.height, first.termination)
+        elems = [x*first.weight+y*second.weight for x,y in zip(first.root.weights, second.root.weights)]
+        nonzero = next((x for x in elems if x), None)
+        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight/nonzero,second.weight/nonzero))
+        return cls(new_node, nonzero, first.height, first.termination)
 
     @classmethod
     def mult_nodes(cls, first: node, second: node, height: int, weights_parent: tuple) -> node:
-        newweightsleft = (first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1)))
-        newweightsright = (first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3)))
-        new_weights_parent_left = 
-        new_weights_parent_right = 
-        newconnsleft = (cls.mult_nodes(first.weights[x], second.weights[y], height-1, new_weights_parent_left) for x,y in zip((0,0,2,2),(0,1,0,1)))
-        newconnsright = (cls.mult_nodes(first.weights[x], second.weights[y], height-1, new_weights_parent_right) for x,y in zip((1,1,3,3),(2,3,2,3)))
+        if not first or not second:
+            return None
+        newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])
+        newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3))])
+        if height <= 1:
+            retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
+            return cls.node((None, None, None, None), retweights)
+        newconnsleft = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, weights_parent) for x,y in zip((0,0,2,2),(0,1,0,1))])
+        newconnsright = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, weights_parent) for x,y in zip((1,1,3,3),(2,3,2,3))])
         newleft = cls.node(newconnsleft, newweightsleft)
         newright = cls.node(newconnsright, newweightsright)
-        result = cls.add_nodes(newleft, newright, height, weights_parent)
+        result = cls.add_nodes(newleft, newright, height, (1,1))
         return result
+
+    @classmethod
+    def mult_matrices(cls, first, second):
+        new_node = cls.mult_nodes(first.root, second.root, first.height, (first.weight,second.weight))
+        return cls(new_node, first.weight*second.weight, first.height, first.termination)
 
     @classmethod
     def mult(cls, first, second):
