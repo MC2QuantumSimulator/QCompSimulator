@@ -315,6 +315,31 @@ class qmatrix():
             identity = cls.kron(identity, newnode)
         return identity
 
+    def number_of_nodes(self):
+        "Returns the number of unique nodes in the tree, excluding the termination node"
+        # LIFO queue to store nodes to be traversed
+        s1 = queue.LifoQueue()
+        # set storing all found nodes
+        c1 = set()
+
+        # add root node to queue and the set
+        s1.put((self.root, self.height))
+        c1.add(self.root)
+        sum_nodes =1
+
+        while s1.qsize() != 0:
+            curr, height = s1.get()
+            if curr and (height > 1):
+
+                # if the current conns have not already been found; add them to the queue and the set
+                for conn in curr.conns:
+                    if conn and conn not in c1:
+                        s1.put((conn, height-1))
+                        c1.add(conn)
+                        sum_nodes += 1
+
+        return sum_nodes
+
     @classmethod
     def copy(cls, original):
         """Returns a qmatrix that is separate from the original object"""
