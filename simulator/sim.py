@@ -1,5 +1,7 @@
 import argparse
 import numpy as np
+import os
+import random
 import ParseInput
 import circuitBuilder
 from qmatrix import qmatrix
@@ -17,9 +19,9 @@ def main():
     parser.add_argument('-i', dest='input_state', help='File with input state(s)')
     group = parser.add_mutually_exclusive_group()
     # Numbers of shots to return
-    group.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int)
+    group.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int) #TODO
     # Wether to save the final vector or calculate probabilities
-    group.add_argument('--state', help='Print the final vector to path instead of calculating probabilities')
+    group.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
     # Save the matrix instead of calculating anything with it
     group.add_argument('--saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
     # Debug: print extra info
@@ -33,6 +35,8 @@ def main():
     savestate = args.state
     save_matrix = args.saveMatrix
     debug = args.debug
+
+    abs_output = os.path.join(os.path.dirname(__file__), "../outputFiles/output.txt")
 
     if debug:
         # Print out the input to see that it worked
@@ -53,37 +57,64 @@ def main():
         print('')
 
 
+    if not shots: shots = 1024
+
+
 
     # Returns a matrix tree when passed a path to the qasm file and the parsed gates (or call parse gates from this func?)
     # Should circuitBuilder be a class that also includes measurment funcs and such or should that be in a different place?
-    # TODO: Repalce with actual qasm parser & circuit builder
-    #qc = circuitBuilder.build_circuit(np.array(matlist[0]))
+   
 
     # Prints the resulting matrix in a Python/Matlab compatible format
     # TODO: Make it possible to output mathematical 'stuff' (exp, roots)
-    # TODO: parse input states, currently no input state can be parsed, only default works
 
-    qmats, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
+    qmat, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
+    
 
     if save_matrix:
-        #write_matrix_to_file(save_matrix, qc)
-        y = 9
+        write_matrix_to_file(save_matrix, qmat)
     else:
-        if not inputstate:
+        inputs = [] #
+        outputstates = []
+
+        if inputstate:
+            f = open(inputstate, 'r')
+            for state in eval(f.read()):
+                inputs.append(state)
+            f.close()
+        else:
             input_vector = np.zeros(1<<height)
             input_vector[0] = 1
-            qv = qvector.to_tree(input_vector)
-        for qmat in qmats:
-            qv = qvector.mult(qmat, qv)
-        print(qv.to_vector())
-        print(qv.measure())
+            inputs.append(input_vector)
+           
+        # The operation qmatrix applied to all input vectors
+        for state in inputs:
+            qv = qvector.to_tree(state)
+            outputstates.append(qvector.mult(qmat,qv))
+        
+        # Mostly for debugging
+        for output in outputstates:
+            print("")
+            print("Statevector: " + repr(output.to_vector()))
+            #print("Probability: " + repr(measure(output.to_vector(),shots)))
+        
 
+        # Prints either state or output vectors
         if savestate:
-            with open(savestate, 'w') as f:
-                f.write(str(qv.to_vector()))
+            with open(abs_output, 'w') as f:
+                f.write("State vectors: \n")
+                for output in outputstates:
+                    f.write(repr(output.to_vector()) + "\n")
+        else:
+            with open(abs_output, 'w') as f:
+                f.write("Probabillity vectors: \n")
+                for output in outputstates:
+                    f.write(repr(measure(output.to_vector(),shots)) + "\n")
+                
 
 def write_matrix_to_file(save_matrix, qc):
     with open(save_matrix, 'w') as f:
+        z = (1 << qc.height) - 1 # Last index of loop
         f.write('[')
         for x in range(1 << qc.height):
             if x != 0:
@@ -91,11 +122,37 @@ def write_matrix_to_file(save_matrix, qc):
             f.write('[')
             for y in range(1 << qc.height):
                 string = ', ' if y != 0 else ''
-                string += str(qc.get_element((x, y)))
+                string += repr(round(qc.get_element((x, y)),7))
                 f.write(string)
-            f.write('],')
+            f.write(']')
+            if x != z:
+                f.write(',')
+        
         f.write(']')
 
+
+
+def measure(vector, reps):
+    
+    probs = [round(abs(x)**2,7) for x in vector]
+    result = [0]*len(vector)
+    
+    for x in range(reps):
+        sum = 0.0
+        collapse = random.random()
+        for index, prob in enumerate(probs):  
+            if collapse <= prob + sum:
+                result[index] = result[index] + 1
+                break
+            sum += prob
+            
+        
+    
+    for index in range(len(result)):
+        result[index] /= reps
+
+
+    return result
 
 if __name__ == '__main__':
     main()

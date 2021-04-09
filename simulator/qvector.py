@@ -119,8 +119,8 @@ class qvector:
                 # If current node is a leaf node (Both conns are None)
                 # push left and right leg-value onto stack
                 if curr.conns[0] is None and curr.conns[1] is None and height == 1:
-                    s2.append(curr.weights[0]*weight)
-                    s2.append(curr.weights[1]*weight)
+                    s2.append(round(curr.weights[0]*weight,7))
+                    s2.append(round(curr.weights[1]*weight,7))
 
         return s2
 
@@ -143,7 +143,7 @@ class qvector:
 
     def measure(self):
         vector=self.to_vector()
-        res = [abs(x)**2 for x in vector]
+        res = [round(abs(x)**2,7) for x in vector]
         return res
 
     def measureSingle(self, qubit): #Not tested much, but also not necessary?
