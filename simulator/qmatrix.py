@@ -5,6 +5,7 @@ from functools import lru_cache
 
 class qmatrix():
 
+    # Recursion limit can be changed
     cache_size = None
 
     class node():
@@ -37,13 +38,13 @@ class qmatrix():
 
     @classmethod
     @lru_cache(maxsize=cache_size)
-    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple) -> node:
+    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple, termnode) -> node:
         if not first:
             return second
         if not second:
             return first
         if height > 1:
-            conns = [cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1])) for x,y,z,w in zip(first.conns, second.conns, first.weights, second.weights)]
+            conns = [cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1]), termnode) for x,y,z,w in zip(first.conns, second.conns, first.weights, second.weights)]
         weights_here1 = tuple([x*weights_parent[0] for x in first.weights])
         weights_here2 = tuple([x*weights_parent[1] for x in second.weights])
         ind1 = next((index for index,value in enumerate(weights_here1) if value != 0), 0)
@@ -55,38 +56,42 @@ class qmatrix():
         else:
             weight_div = weights_here
         if height <= 1:
-            return cls.node((None, None, None, None), weight_div)
+            return cls.node((termnode, termnode, termnode, termnode), weight_div)
         return cls.node(conns, weight_div)
 
     @classmethod
     def add_matrices(cls, first, second):
+        # TODO: nuke first and second
         # Used for debugging the add_nodes func, not needed for sim
+        termnode = first.termination
         elems = [x*first.weight+y*second.weight for x,y in zip(first.root.weights, second.root.weights)]
         nonzero = next((x for x in elems if x), None)
-        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight/nonzero,second.weight/nonzero))
+        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight/nonzero,second.weight/nonzero), termnode)
         return cls(new_node, nonzero, first.height, first.termination)
 
     @classmethod
     @lru_cache(maxsize=cache_size)
-    def mult_nodes(cls, first: node, second: node, height: int, weights_parent: tuple) -> node:
+    def mult_nodes(cls, first: node, second: node, height: int, termnode: node) -> node:
         if not first or not second:
             return None
         newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])
         newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3))])
         if height <= 1:
             retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
-            return cls.node((None, None, None, None), retweights)
-        newconnsleft = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, weights_parent) for x,y in zip((0,0,2,2),(0,1,0,1))])
-        newconnsright = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, weights_parent) for x,y in zip((1,1,3,3),(2,3,2,3))])
+            return cls.node((termnode, termnode, termnode, termnode), retweights)
+        newconnsleft = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, termnode) for x,y in zip((0,0,2,2),(0,1,0,1))])
+        newconnsright = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, termnode) for x,y in zip((1,1,3,3),(2,3,2,3))])
         newleft = cls.node(newconnsleft, newweightsleft)
         newright = cls.node(newconnsright, newweightsright)
-        result = cls.add_nodes(newleft, newright, height, (1,1))
+        result = cls.add_nodes(newleft, newright, height, (1,1), termnode)
         return result
 
     @classmethod
     def mult(cls, first, second):
-        new_node = cls.mult_nodes(first.root, second.root, first.height, (first.weight,second.weight))
-        return cls(new_node, first.weight*second.weight, first.height, first.termination)
+        # TODO: nuke first and second
+        termnode = first.termination
+        new_node = cls.mult_nodes(first.root, second.root, first.height, termnode)
+        return cls(new_node, first.weight*second.weight, first.height, termnode)
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
