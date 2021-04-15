@@ -76,7 +76,7 @@ class ParseInput:
                 continue
 
             gates_matrix_form.append(matrix)
-            print(matrix)
+            #print(matrix)
         
         # Deletes the non-unitary gate names.
         for index in range(len(not_unitary)-1,-1,-1):
