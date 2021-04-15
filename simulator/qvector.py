@@ -17,8 +17,8 @@ class qvector:
             """Assumes only one copy of earlier nodes exist"""
             return False if not o else self.conns == o.conns and self.weights == o.weights
 
-    def __init__(self, root_node, weight, height):
-        self.root_node = root_node
+    def __init__(self, root, weight, height):
+        self.root = root
         self.weight = weight
         self.height = height
 
@@ -99,7 +99,7 @@ class qvector:
         s2 = []
 
         # attach rootnode to stack
-        s1.put((self.root_node, self.weight, self.height))
+        s1.put((self.root, self.weight, self.height))
 
         while s1.qsize() != 0:
             curr, weight, height = s1.get()
@@ -129,7 +129,7 @@ class qvector:
         if (index >= size << 1 or index < 0):
             raise ValueError("Index out of bounds, index was {} when allowed values are 0 - {}".format(index, size - 1))
         value = self.weight
-        target = self.root_node
+        target = self.root
         while size > 0:
             goto = 0
             if index & size:
@@ -155,7 +155,7 @@ class qvector:
                 not_outcome = 1
 
             q = LifoQueue()
-            q.put((self.root_node , 0)) # Second part of tuple is the current qubit ( depth ). Starts q_0
+            q.put((self.root , 0)) # Second part of tuple is the current qubit ( depth ). Starts q_0
 
             while q.qsize() != 0:
                 (node,depth) = q.get()
@@ -186,6 +186,31 @@ class qvector:
         else:
             collapse(1, math.sqrt(1-probability_zero))
             return 1 #No need to return?
+
+    def number_of_nodes(self):
+        "Returns the number of unique nodes in the tree"
+        # LIFO queue to store nodes to be traversed
+        s1 = LifoQueue()
+        # set storing all found nodes
+        c1 = set()
+
+        # add root node to queue and the set
+        s1.put((self.root, self.height))
+        c1.add(self.root)
+        sum_nodes =1
+
+        while s1.qsize() != 0:
+            curr, height = s1.get()
+            if curr and (height > 1):
+
+                # if the current conns have not already been found; add them to the queue and the set
+                for conn in curr.conns:
+                    if conn and conn not in c1:
+                        s1.put((conn, height-1))
+                        c1.add(conn)
+                        sum_nodes += 1
+
+        return sum_nodes
 
 def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."
