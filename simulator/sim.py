@@ -96,7 +96,7 @@ def main():
         for output in outputstates:
             print("")
             print("Statevector: " + repr(output.to_vector()))
-            #print("Probability: " + repr(measure(output.to_vector(),shots)))
+            print("Probability: " + repr(output.measure()))
         
 
         # Prints either state or output vectors
@@ -109,7 +109,8 @@ def main():
             with open(abs_output, 'w') as f:
                 f.write("Probabillity vectors: \n")
                 for output in outputstates:
-                    f.write(repr(measure(output.to_vector(),shots)) + "\n")
+                    #f.write(repr(shoot(output.to_vector(),shots)) + "\n")
+                    f.write(repr(output.measure()))
                 
 
 def write_matrix_to_file(save_matrix, qc):
@@ -132,24 +133,34 @@ def write_matrix_to_file(save_matrix, qc):
 
 
 
-def measure(vector, reps):
-    
+def shoot(vector, reps):
+    abs_shots = os.path.join(os.path.dirname(__file__), "../outputFiles/shots.txt")
+    f = open(abs_shots, 'w')
     probs = [round(abs(x)**2,7) for x in vector]
-    result = [0]*len(vector)
     
     for x in range(reps):
+        result = [0]*len(vector)
         sum = 0.0
         collapse = random.random()
         for index, prob in enumerate(probs):  
             if collapse <= prob + sum:
-                result[index] = result[index] + 1
+                result[index] = 1
+                bit = result.index(1) 
+                bin = format(bit, "b")
+
+                # Pads the binary number to the right amount of bits
+                while len(bin) < np.log2(len(probs)):
+                    bin = "0" + bin
+
+                f.write(bin + "\n") 
+                #f.write(repr(result) + '\n') # For debug
                 break
             sum += prob
             
         
     
-    for index in range(len(result)):
-        result[index] /= reps
+    #for index in range(len(result)):
+    #    result[index] /= reps
 
 
     return result
