@@ -41,20 +41,38 @@ class qvector:
         weight_parent_sum = weights_parent[0]*(ind1<=ind2) + weights_parent[1]*(ind2<=ind1)
         weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
         if not all(x == 0 for x in weights_here):
-            weight_div = tuple([x/weight_parent_sum for x in weights_here])
+            correction = []
+            for firstconn, secondconn in zip(first.conns, second.conns):
+                if firstconn:
+                    newind1 = next((index for index,value in enumerate(firstconn.weights) if value != 0), 0)
+                else:
+                    newind1 = -1
+                if secondconn:
+                    newind2 = next((index for index,value in enumerate(secondconn.weights) if value != 0), 0)
+                else:
+                    newind2 = -1
+                if newind1 != -1 and newind2 != -1 and newind1 != newind2:
+                    correction.append(1)
+                else:
+                    correction.append(0)
+            weight_div = tuple([(x-y)/weight_parent_sum for x, y in zip(weights_here, correction)])
         else:
             weight_div = weights_here
         if height <= 1:
-            return cls.node((None, None, None, None), weight_div)
+            return cls.node((None, None), weight_div)
         return cls.node(conns, weight_div)
 
     @classmethod
     def add_vectors(cls, first, second):
+        if not first.root:
+            return second
+        if not second.root:
+            return first
         # TODO: nuke first and second
         # Used for debugging the add_nodes func, not needed for sim
         elems = [x*first.weight+y*second.weight for x,y in zip(first.root.weights, second.root.weights)]
         nonzero = next((x for x in elems if x), None)
-        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight/nonzero,second.weight/nonzero))
+        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight))
         return cls(new_node, nonzero, first.height)
 
     @classmethod
@@ -129,23 +147,23 @@ class qvector:
 
         return qvector(root, weight, height)
 
-    # @classmethod
-    # def mult(cls,matrix_tree,vector_tree):
-    #     def set_weight(current_leg):
-    #         weight = 0
-    #         for i in range(size):
-    #             weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
-    #         return weight
+    @classmethod
+    def mult(cls,matrix_tree,vector_tree):
+        def set_weight(current_leg):
+            weight = 0
+            for i in range(size):
+                weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
+            return weight
 
-    #     if (matrix_tree.height != vector_tree.height):
-    #         raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
+        if (matrix_tree.height != vector_tree.height):
+            raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
 
-    #     size = 2 ** matrix_tree.height
-    #     vec_arr_result = []
-    #     for current_leg in range(size):
-    #         vec_arr_result.append(set_weight(current_leg))
+        size = 2 ** matrix_tree.height
+        vec_arr_result = []
+        for current_leg in range(size):
+            vec_arr_result.append(set_weight(current_leg))
 
-    #     return cls.to_tree(vec_arr_result)
+        return cls.to_tree(vec_arr_result)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-

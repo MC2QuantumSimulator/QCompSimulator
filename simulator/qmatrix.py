@@ -52,7 +52,21 @@ class qmatrix():
         weight_parent_sum = weights_parent[0]*(ind1<=ind2) + weights_parent[1]*(ind2<=ind1)
         weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
         if not all(x == 0 for x in weights_here):
-            weight_div = tuple([x/weight_parent_sum for x in weights_here])
+            correction = []
+            for firstconn, secondconn in zip(first.conns, second.conns):
+                if firstconn and firstconn.weights:
+                    newind1 = next((index for index,value in enumerate(firstconn.weights) if value != 0), 0)
+                else:
+                    newind1 = -1
+                if secondconn and secondconn.weights:
+                    newind2 = next((index for index,value in enumerate(secondconn.weights) if value != 0), 0)
+                else:
+                    newind2 = -1
+                if height > 1 and (newind1 != -1 or newind2 != -1) and newind1 != newind2:
+                    correction.append(1)
+                else:
+                    correction.append(0)
+            weight_div = tuple([(x-y)/weight_parent_sum for x, y in zip(weights_here, correction)])
         else:
             weight_div = weights_here
         if height <= 1:
@@ -66,7 +80,7 @@ class qmatrix():
         termnode = first.termination
         elems = [x*first.weight+y*second.weight for x,y in zip(first.root.weights, second.root.weights)]
         nonzero = next((x for x in elems if x), None)
-        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight/nonzero,second.weight/nonzero), termnode)
+        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight), termnode)
         return cls(new_node, nonzero, first.height, first.termination)
 
     @classmethod
