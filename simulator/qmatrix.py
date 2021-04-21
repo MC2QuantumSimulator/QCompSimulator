@@ -39,73 +39,83 @@ class qmatrix():
     @classmethod
     @lru_cache(maxsize=cache_size)
     def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple, termnode) -> node:
+        if not first and not second:
+            return (None, 0)
         if not first:
-            return second
-        if not second:
-            return first
-        if height > 1:
-            conns = [cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1]), termnode) for x,y,z,w in zip(first.conns, second.conns, first.weights, second.weights)]
-        weights_here1 = tuple([x*weights_parent[0] for x in first.weights])
-        weights_here2 = tuple([x*weights_parent[1] for x in second.weights])
-        ind1 = next((index for index,value in enumerate(weights_here1) if value != 0), 0)
-        ind2 = next((index for index,value in enumerate(weights_here2) if value != 0), 0)
-        weight_parent_sum = weights_parent[0]*(ind1<=ind2) + weights_parent[1]*(ind2<=ind1)
-        weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
-        if not all(x == 0 for x in weights_here):
-            correction = []
-            for firstconn, secondconn in zip(first.conns, second.conns):
-                if firstconn and firstconn.weights:
-                    newind1 = next((index for index,value in enumerate(firstconn.weights) if value != 0), 0)
-                else:
-                    newind1 = -1
-                if secondconn and secondconn.weights:
-                    newind2 = next((index for index,value in enumerate(secondconn.weights) if value != 0), 0)
-                else:
-                    newind2 = -1
-                if height > 1 and (newind1 != -1 or newind2 != -1) and newind1 != newind2:
-                    correction.append(1)
-                else:
-                    correction.append(0)
-            weight_div = tuple([(x-y)/weight_parent_sum for x, y in zip(weights_here, correction)])
+            firstconns = (None, None, None, None)
+            firstweights = (0, 0, 0, 0)
         else:
-            weight_div = weights_here
+            firstconns = first.conns
+            firstweights = first.weights
+        if not second:
+            secondconns = (None, None, None, None)
+            secondweights = (0, 0, 0, 0)
+        else:
+            secondconns = second.conns
+            secondweights = second.weights
+        if height > 1:
+            conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1]), termnode) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
+            conns = tuple([None if not item else item[0] for item in conns_n_weights])
+            weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
+        else:
+            conns = (None, None)
         if height <= 1:
-            return cls.node((termnode, termnode, termnode, termnode), weight_div)
-        return cls.node(conns, weight_div)
+            weights_here1 = tuple([x*weights_parent[0] for x in firstweights])
+            weights_here2 = tuple([x*weights_parent[1] for x in secondweights])
+            weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
+            nonzero = next((x for x in weights_here if x), 1)
+            normelems = tuple([weight / nonzero for weight in weights_here])
+            node = cls.node((termnode, termnode, termnode, termnode), normelems)
+            return (node, nonzero)
+
+        nonzero = next((x for x in weights_from_children if x), None)
+        if not nonzero:
+            nonzero = 1
+        normelems = tuple([weight / nonzero for weight in weights_from_children])
+        
+        node = cls.node(conns, normelems)
+        return (node, nonzero)
 
     @classmethod
     def add_matrices(cls, first, second):
         # TODO: nuke first and second
         # Used for debugging the add_nodes func, not needed for sim
         termnode = first.termination
-        elems = [x*first.weight+y*second.weight for x,y in zip(first.root.weights, second.root.weights)]
-        nonzero = next((x for x in elems if x), None)
-        new_node = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight), termnode)
-        return cls(new_node, nonzero, first.height, first.termination)
+        new_node, norm = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight), termnode)
+        return cls(new_node, norm, first.height, first.termination)
 
     @classmethod
     @lru_cache(maxsize=cache_size)
     def mult_nodes(cls, first: node, second: node, height: int, termnode: node) -> node:
         if not first or not second:
-            return None
+            return (None, 0)
         newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])
         newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3))])
         if height <= 1:
             retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
-            return cls.node((termnode, termnode, termnode, termnode), retweights)
-        newconnsleft = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, termnode) for x,y in zip((0,0,2,2),(0,1,0,1))])
-        newconnsright = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, termnode) for x,y in zip((1,1,3,3),(2,3,2,3))])
-        newleft = cls.node(newconnsleft, newweightsleft)
-        newright = cls.node(newconnsright, newweightsright)
-        result = cls.add_nodes(newleft, newright, height, (1,1), termnode)
-        return result
+            nonzero = next((x for x in retweights if x), 1)
+            normelems = tuple([weight / nonzero for weight in retweights])
+            node = cls.node((termnode, termnode, termnode, termnode), normelems)
+            return (node, nonzero)
+        newconnsleft_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, termnode) for x,y in zip((0,0,2,2),(0,1,0,1))])
+        newconnsright_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, termnode) for x,y in zip((1,1,3,3),(2,3,2,3))])
+        newconnsleft = tuple([None if not item else item[0] for item in newconnsleft_n_weights])
+        newconnsright = tuple([None if not item else item[0] for item in newconnsright_n_weights])
+        weightpropleft = tuple([0 if not item else item[1] for item in newconnsleft_n_weights])
+        weightpropright = tuple([0 if not item else item[1] for item in newconnsright_n_weights])
+        resweightsleft = tuple([x*y for x,y in zip(newweightsleft, weightpropleft)])
+        resweightsright = tuple([x*y for x,y in zip(newweightsright, weightpropright)])
+        newleft = cls.node(newconnsleft, resweightsleft)
+        newright = cls.node(newconnsright, resweightsright)
+        result, weight = cls.add_nodes(newleft, newright, height, (1,1), termnode)
+        return (result, weight)
 
     @classmethod
     def mult(cls, first, second):
         # TODO: nuke first and second
         termnode = first.termination
-        new_node = cls.mult_nodes(first.root, second.root, first.height, termnode)
-        return cls(new_node, first.weight*second.weight, first.height, termnode)
+        new_node, weight = cls.mult_nodes(first.root, second.root, first.height, termnode)
+        return cls(new_node, weight, first.height, termnode)
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
