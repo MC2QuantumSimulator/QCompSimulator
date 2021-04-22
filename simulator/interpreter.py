@@ -32,6 +32,7 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
     qasm_string = f_qasm.readlines() 
     f_qasm.close()
     
+    print(qasm_string)
 
     variables = []
     operations = []
@@ -40,6 +41,10 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
     q = None
     # Splits qasm into variable name and
     for line in qasm_string:
+        
+        # Ignores empty lines
+        if line.strip() == "": continue
+        
         split = line.split()
         var = split[0]
 
