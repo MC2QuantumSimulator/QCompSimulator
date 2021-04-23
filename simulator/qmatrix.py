@@ -42,10 +42,10 @@ class qmatrix():
         self.height = height
         self.termination = termination
 
-    @staticmethod
+    @classmethod
     @lru_cache(maxsize=cache_size)
-    def cache_node(conns, weights):
-        return qmatrix.node(conns, weights)
+    def cache_node(cls, conns, weights):
+        return cls.node(conns, weights)
 
     @classmethod
     @lru_cache(maxsize=cache_size)
@@ -79,9 +79,7 @@ class qmatrix():
             node = cls.cache_node((termnode, termnode, termnode, termnode), normelems)
             return (node, nonzero)
 
-        nonzero = next((x for x in weights_from_children if x), None)
-        if not nonzero:
-            nonzero = 1
+        nonzero = next((x for x in weights_from_children if x), 1)
         normelems = tuple([weight / nonzero for weight in weights_from_children])
         
         node = cls.cache_node(conns, normelems)
@@ -96,7 +94,7 @@ class qmatrix():
 
     @classmethod
     @lru_cache(maxsize=cache_size)
-    def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: tuple, termnode: node) -> node:
+    def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: float, termnode: node) -> node:
         if not first or not second:
             return (None, 0)
         newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])

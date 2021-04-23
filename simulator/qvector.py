@@ -65,14 +65,12 @@ class qvector:
             weights_here1 = tuple([x*weights_parent[0] for x in firstweights])
             weights_here2 = tuple([x*weights_parent[1] for x in secondweights])
             weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
-            nonzero = next((x for x in weights_here if x), None)
+            nonzero = next((x for x in weights_here if x), 1)
             normelems = tuple([weight / nonzero for weight in weights_here])
             node = cls.cache_node(conns, normelems)
             return (node, nonzero)
 
-        nonzero = next((x for x in weights_from_children if x), None)
-        if not nonzero:
-            nonzero = 1
+        nonzero = next((x for x in weights_from_children if x), 1)
         normelems = tuple([weight / nonzero for weight in weights_from_children])
         
         node = cls.cache_node(conns, normelems)
