@@ -3,27 +3,40 @@ import math
 from queue import Queue, LifoQueue
 import numpy as np
 from functools import lru_cache
+import sys
 
 
 class qvector:
+
+    # Recursion limit can be changed
+    sys.setrecursionlimit(1500)
+    cache_size = 1024
+
     class node:
         def __init__(self, conns, weights):
             self.conns = conns
             self.weights = weights
 
         def __hash__(self) -> int:
-            return hash((self.conns, self.weights))
+            return hash((0 if not self.conns else (0 if not conn else id(conn) for conn in self.conns), self.weights))
 
         def __eq__(self, o: object) -> bool:
             """Assumes only one copy of earlier nodes exist"""
-            return False if not o else self.conns == o.conns and self.weights == o.weights
+            if not o:
+                return False
+            if not self.conns and not o.conns:
+                return self.weights == o.weights
+            return self.weights == o.weights and all(id(x) == id(y) for x,y in zip(self.conns, o.conns))
 
     def __init__(self, root, weight, height):
         self.root = root
         self.weight = weight
         self.height = height
 
-    cache_size = None
+    @classmethod
+    @lru_cache(maxsize=cache_size)
+    def cache_node(cls, conns, weights):
+        return cls.node(conns, weights)
 
     @classmethod
     @lru_cache(maxsize=cache_size)
@@ -54,7 +67,7 @@ class qvector:
             weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
             nonzero = next((x for x in weights_here if x), None)
             normelems = tuple([weight / nonzero for weight in weights_here])
-            node = cls.node(conns, normelems)
+            node = cls.cache_node(conns, normelems)
             return (node, nonzero)
 
         nonzero = next((x for x in weights_from_children if x), None)
@@ -62,7 +75,7 @@ class qvector:
             nonzero = 1
         normelems = tuple([weight / nonzero for weight in weights_from_children])
         
-        node = cls.node(conns, normelems)
+        node = cls.cache_node(conns, normelems)
         return (node, nonzero)
 
     @classmethod
@@ -78,26 +91,33 @@ class qvector:
 
     @classmethod
     @lru_cache(maxsize=cache_size)
-    def mult_nodes(cls, first: node, second: node, height: int) -> node:
+    def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: float) -> node:
         if not first or not second:
-            return None
+            return (None, 0)
         newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,2),(0,0))])
         newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,3),(1,1))])
         if height <= 1:
             retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
-            return cls.node((None, None, None, None), retweights)
-        newconnsleft = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1) for x,y in zip((0,2),(0,0))])
-        newconnsright = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1) for x,y in zip((1,3),(1,1))])
-        newleft = cls.node(newconnsleft, newweightsleft)
-        newright = cls.node(newconnsright, newweightsright)
-        result, weight = cls.add_nodes(newleft, newright, height, (1,1))
-        return result
+            nonzero = next((x for x in retweights if x), 1)
+            normelems = tuple([weight / nonzero for weight in retweights])
+            node = cls.cache_node((None, None), normelems)
+            return (node, nonzero*weight_from_parent)
+        newconnsleft_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, first.weights[x]*second.weights[y]) for x,y in zip((0,2),(0,0))])
+        newconnsright_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, first.weights[x]*second.weights[y]) for x,y in zip((1,3),(1,1))])
+        newconnsleft = tuple([None if not item else item[0] for item in newconnsleft_n_weights])
+        newconnsright = tuple([None if not item else item[0] for item in newconnsright_n_weights])
+        weightpropleft = tuple([0 if not item else item[1] for item in newconnsleft_n_weights])
+        weightpropright = tuple([0 if not item else item[1] for item in newconnsright_n_weights])
+        newleft = cls.node(newconnsleft, weightpropleft)
+        newright = cls.node(newconnsright, weightpropright)
+        result, weight = cls.add_nodes(newleft, newright, height, (1, 1))
+        return (result, weight*weight_from_parent)
 
     @classmethod
     def mult(cls, first, second):
         # TODO: nuke first and second
-        new_node = cls.mult_nodes(first.root, second.root, first.height)
-        return cls(new_node, first.weight*second.weight, first.height)
+        new_node, weight = cls.mult_nodes(first.root, second.root, first.height, first.weight*second.weight)
+        return cls(new_node, weight, first.height)
 
     @staticmethod
     def to_tree(vector_arr):
@@ -148,23 +168,23 @@ class qvector:
 
         return qvector(root, weight, height)
 
-    @classmethod
-    def mult(cls,matrix_tree,vector_tree):
-        def set_weight(current_leg):
-            weight = 0
-            for i in range(size):
-                weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
-            return weight
+    # @classmethod
+    # def mult(cls,matrix_tree,vector_tree):
+    #     def set_weight(current_leg):
+    #         weight = 0
+    #         for i in range(size):
+    #             weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
+    #         return weight
 
-        if (matrix_tree.height != vector_tree.height):
-            raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
+    #     if (matrix_tree.height != vector_tree.height):
+    #         raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
 
-        size = 2 ** matrix_tree.height
-        vec_arr_result = []
-        for current_leg in range(size):
-            vec_arr_result.append(set_weight(current_leg))
+    #     size = 2 ** matrix_tree.height
+    #     vec_arr_result = []
+    #     for current_leg in range(size):
+    #         vec_arr_result.append(set_weight(current_leg))
 
-        return cls.to_tree(vec_arr_result)
+    #     return cls.to_tree(vec_arr_result)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
