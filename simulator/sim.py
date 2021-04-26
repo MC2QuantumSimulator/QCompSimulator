@@ -20,9 +20,11 @@ def main():
     parser.add_argument('-i', dest='input_state', help='File with input state(s)')
     group = parser.add_mutually_exclusive_group()
     # Numbers of shots to return
-    group.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int) #TODO
+    parser.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int)
+    # Prints result in the qiskit representation
+    parser.add_argument('--qiskit', action='store_true', help='Swaps the bit order to match Qiskit')
     # Wether to save the final vector or calculate probabilities
-    group.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
+    parser.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
     # Save the matrix instead of calculating anything with it
     group.add_argument('--saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
     # Debug: print extra info
@@ -35,6 +37,7 @@ def main():
     shots = args.shots
     savestate = args.state
     save_matrix = args.saveMatrix
+    qiskit_ordering = args.qiskit
     debug = args.debug
 
     abs_output = os.path.join(os.path.dirname(__file__), "../outputFiles/output.txt")
@@ -96,8 +99,12 @@ def main():
         # Mostly for debugging
         for output in outputstates:
             print("")
-            print("Statevector: " + repr(output.to_vector()))
-            print("Probability: " + repr(output.measure()))
+            if qiskit_ordering:
+                print("Statevector: " + repr(swap_significants(output.to_vector())))
+                print("Probability: " + repr(swap_significants(output.measure())))
+            else:
+                print("Statevector: " + repr(output.to_vector()))
+                print("Probability: " + repr(output.measure()))
         
 
         # Clears that "shots.txt" file, needed for multiple inputs
@@ -111,14 +118,18 @@ def main():
             with open(abs_output, 'w') as f:
                 f.write("State vectors: \n")
                 for output in outputstates:
-                    shoot(output.to_vector(),shots)
-                    f.write(repr(output.to_vector()) + "\n")
+                    shoot(output.to_vector(),shots, qiskit_ordering)
+                    temp = output.to_vector()
+                    if qiskit_ordering: temp = swap_significants(temp)
+                    f.write(repr(temp) + "\n")
         else:
             with open(abs_output, 'w') as f:
                 f.write("Probabillity vectors: \n")
                 for output in outputstates:
-                    shoot(output.to_vector(),shots)
-                    f.write(repr(output.measure()))
+                    shoot(output.to_vector(),shots, qiskit_ordering)
+                    temp = output.measure()
+                    if qiskit_ordering: temp = swap_significants(temp)
+                    f.write(repr(temp) + "\n")
         
 
         
@@ -143,7 +154,8 @@ def write_matrix_to_file(save_matrix, qc):
 
 
 
-def shoot(vector, reps):
+# Collapses the vector and prints it values 'reps' amount of times. Also prints the distribution.
+def shoot(vector, reps, qiskit_ordering):
     abs_shots = os.path.join(os.path.dirname(__file__), "../outputFiles/shots.txt")
     f = open(abs_shots, 'a')
     probs = [round(abs(x)**2,7) for x in vector]
@@ -156,6 +168,11 @@ def shoot(vector, reps):
                             [np.binary_repr(x, n_bits) for x in np.arange(0,len(vector))]
                             ,reps,p=probs)
 
+    # Swaps significans of the bits
+    if qiskit_ordering:
+        for index, b in enumerate(bits):
+            bits[index] = b[::-1] # Flips the bit order
+
     # Shows statistics of how many times a value was chosen
     f.write(repr(Counter(bits)) + "\n")
 
@@ -163,6 +180,25 @@ def shoot(vector, reps):
     for b in bits:
         f.write(b + "\n")
 
+
+
+# Swaps the significant order of bits in the statevector.
+# Used to represent the result the same way Qiskit does.
+def swap_significants(vector):
+
+    # Amount of bits
+    n_bits = int(np.log2(len(vector)))
+
+    swap_arr = [0]*len(vector)
+
+    # Swaps the index of a non 0 value
+    for index, b in enumerate(vector):
+        if b != 0:
+            rev = (np.binary_repr(index, n_bits))[::-1] # Flips the bit order
+            new_index = int(rev,2) # Converts binary to decimal
+            swap_arr[new_index] = b
+
+    return swap_arr
 
 if __name__ == '__main__':
     main()

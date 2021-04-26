@@ -35,6 +35,22 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
     variables = []
     operations = []
 
+    #noll = [1,0,0,0]
+    #ett = [0,1,0,0]
+    #två = [0,0,1,0]
+    #tre = [0,0,0,1]
+    #
+    #nollT = qvector.to_tree(noll)
+    #print("Borde vara " + repr(noll) + " men är " + repr(nollT.to_vector()))
+#
+    #ettT = qvector.to_tree(ett)
+    #print("Borde vara " + repr(ett) + " men är " + repr(ettT.to_vector()))
+#
+    #tvåT = qvector.to_tree(två)
+    #print("Borde vara " + repr(två) + " men är " + repr(tvåT.to_vector()))
+#
+    #treT = qvector.to_tree(tre)
+    #print("Borde vara " + repr(tre) + " men är " + repr(treT.to_vector()))
 
     q = None
     # Splits qasm into variable name and
@@ -89,12 +105,12 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     # Identity matrix of size 2^n where n is the qbit the gate should be applied on
     if pre_n != 0:
         pre = qmatrix.id(pre_n)
-        gate = qmatrix.kron(gate, pre)
+        gate = qmatrix.kron(pre, gate)
 
     # Append identity matrix to fill up to same size as qreg
     if pre_n != tot_len-height:
         post = qmatrix.id(tot_len-pre_n-height)
-        gate = qmatrix.kron(post, gate)
+        gate = qmatrix.kron(gate, post)
     
     #print(gate.to_matrix())
     return gate
