@@ -29,12 +29,13 @@ def idmult(n):
     id1 = qmatrix.id(n)
     id2 = qmatrix.id(n)
     res = qmatrix.mult(id1, id2)
+    return res
 
 nlist = []
 times = []
-for n in range(4,9):
-    runtime = idmult(n)[0]
-    print('n: {}, time: {}'.format(n,runtime))
+for n in range(20,300):
+    runtime, res = idmult(n)
+    print('n: {}, time: {}, nodes: {}'.format(n,runtime, res.number_of_nodes()))
     nlist.append(n)
     times.append(runtime)
 logrun = np.log2(times)

@@ -51,8 +51,11 @@ def main():
             print('num of reps: {}'.format(shots))
         print('Save state:  {}'.format(savestate))
 
+    if debug:
+        print("Starting Gates parsing")
     gate_names, gate_matrix = ParseInput.ParseInput.parse_gates(gatespath)
-
+    if debug:
+        print("Finished Gates parsing")
     if debug:
         print('\nList of all gates:')
         # pass the gates path to ParseInput ant print the returned lists
@@ -71,9 +74,11 @@ def main():
 
     # Prints the resulting matrix in a Python/Matlab compatible format
     # TODO: Make it possible to output mathematical 'stuff' (exp, roots)
-
+    if debug:
+        print("Starting QASM parsing")
     qmat, height = interpreter.parse_qasm(circuitpath, gate_names, gate_matrix)
-    
+    if debug:
+        print("Finished QASM parsing")
 
     if save_matrix:
         write_matrix_to_file(save_matrix, qmat)

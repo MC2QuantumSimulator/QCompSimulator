@@ -7,6 +7,7 @@
 # Removed unnecessary expr.suppress() call (thanks Nathaniel Peterson!), and added Group
 # Changed fnumber to use a Regex, which is now the preferred method
 # Reformatted to latest pypyparsing features, support multiple and variable args to functions
+# From this project QuantumSim: Added functionality for using imaginary number i.
 #
 # View original code at https://github.com/pyparsing/pyparsing/blob/master/examples/fourFn.py
 # Copyright 2003-2019 by Paul McGuire
@@ -25,6 +26,7 @@ from pyparsing import (
     delimitedList,
 )
 import math
+import cmath
 import operator
 
 exprStack = []
@@ -149,6 +151,8 @@ def evaluate_stack(s):
         return math.pi  # 3.1415926535
     elif op == "E":
         return math.e  # 2.718281828
+    elif op == "i":
+        return cmath.sqrt(-1)
     elif op in fn:
         # note: args are pushed onto the stack in reverse order
         args = reversed([evaluate_stack(s) for _ in range(num_args)])
