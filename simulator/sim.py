@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+from collections import Counter
 import os
 import random
 import ParseInput
@@ -101,21 +102,31 @@ def main():
         for output in outputstates:
             print("")
             print("Statevector: " + repr(output.to_vector()))
-            #print("Probability: " + repr(measure(output.to_vector(),shots)))
+            print("Probability: " + repr(output.measure()))
         
+
+        # Clears that "shots.txt" file, needed for multiple inputs
+        abs_shots = os.path.join(os.path.dirname(__file__), "../outputFiles/shots.txt")
+        f = open(abs_shots, 'w')
+        f.write("")
+        f.close()
 
         # Prints either state or output vectors
         if savestate:
             with open(abs_output, 'w') as f:
                 f.write("State vectors: \n")
                 for output in outputstates:
+                    shoot(output.to_vector(),shots)
                     f.write(repr(output.to_vector()) + "\n")
         else:
             with open(abs_output, 'w') as f:
                 f.write("Probabillity vectors: \n")
                 for output in outputstates:
-                    f.write(repr(measure(output.to_vector(),shots)) + "\n")
-                
+                    shoot(output.to_vector(),shots)
+                    f.write(repr(output.measure()))
+        
+
+        
 
 def write_matrix_to_file(save_matrix, qc):
     with open(save_matrix, 'w') as f:
@@ -137,27 +148,26 @@ def write_matrix_to_file(save_matrix, qc):
 
 
 
-def measure(vector, reps):
-    
+def shoot(vector, reps):
+    abs_shots = os.path.join(os.path.dirname(__file__), "../outputFiles/shots.txt")
+    f = open(abs_shots, 'a')
     probs = [round(abs(x)**2,7) for x in vector]
-    result = [0]*len(vector)
-    
-    for x in range(reps):
-        sum = 0.0
-        collapse = random.random()
-        for index, prob in enumerate(probs):  
-            if collapse <= prob + sum:
-                result[index] = result[index] + 1
-                break
-            sum += prob
-            
-        
-    
-    for index in range(len(result)):
-        result[index] /= reps
 
+    # Amount of bits
+    n_bits = int(np.log2(len(vector)))
+    
+    # Array of all the collapsed bits
+    bits = np.random.choice(
+                            [np.binary_repr(x, n_bits) for x in np.arange(0,len(vector))]
+                            ,reps,p=probs)
 
-    return result
+    # Shows statistics of how many times a value was chosen
+    f.write(repr(Counter(bits)) + "\n")
+
+    # Writes every collapsed bit
+    for b in bits:
+        f.write(b + "\n")
+
 
 if __name__ == '__main__':
     main()
