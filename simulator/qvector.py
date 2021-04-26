@@ -166,24 +166,6 @@ class qvector:
 
         return qvector(root, weight, height)
 
-    # @classmethod
-    # def mult(cls,matrix_tree,vector_tree):
-    #     def set_weight(current_leg):
-    #         weight = 0
-    #         for i in range(size):
-    #             weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
-    #         return weight
-
-    #     if (matrix_tree.height != vector_tree.height):
-    #         raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
-
-    #     size = 2 ** matrix_tree.height
-    #     vec_arr_result = []
-    #     for current_leg in range(size):
-    #         vec_arr_result.append(set_weight(current_leg))
-
-    #     return cls.to_tree(vec_arr_result)
-
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
     # better complexity than regular python lists (O(1) vs O(N))
@@ -306,6 +288,16 @@ class qvector:
                         sum_nodes += 1
 
         return sum_nodes
+
+    @classmethod
+    def zero_state(cls, n):
+        "Returns a Qvector of height n representing the |0> state"
+        # Create the first layer
+        zero_node = cls.node((None,None), (1,0))
+        # Add n-1 more layers, pointing at the new result each time
+        for _ in range(n-1):
+            zero_node = cls.node((zero_node,None), (1,0))
+        return cls(zero_node, 1, n)
 
 def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."
