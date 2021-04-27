@@ -64,8 +64,6 @@ def main():
         print('')
 
 
-    if not shots: shots = 1024
-
 
 
     # Returns a matrix tree when passed a path to the qasm file and the parsed gates (or call parse gates from this func?)
@@ -123,7 +121,7 @@ def main():
             with open(abs_output, 'w') as f:
                 f.write("State vectors: \n")
                 for output in outputstates:
-                    shoot(output.to_vector(),shots, qiskit_ordering)
+                    if shots: shoot(output.to_vector(),shots, qiskit_ordering)
                     temp = output.to_vector()
                     if qiskit_ordering: temp = swap_significants(temp)
                     f.write(repr(temp) + "\n")
@@ -131,7 +129,7 @@ def main():
             with open(abs_output, 'w') as f:
                 f.write("Probabillity vectors: \n")
                 for output in outputstates:
-                    shoot(output.to_vector(),shots, qiskit_ordering)
+                    if shots: shoot(output.to_vector(),shots, qiskit_ordering)
                     temp = output.measure()
                     if qiskit_ordering: temp = swap_significants(temp)
                     f.write(repr(temp) + "\n")
