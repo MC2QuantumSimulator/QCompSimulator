@@ -128,8 +128,8 @@ class qvector:
                 nonzero = 0
             else:
                 nonzero = weight0 if weight0 != 0 else weight1 #Factor for propagation
-                normelems = (weight0/nonzero, weight1/nonzero) #Adjust elements
-                node = qvector.node((None, None), normelems)  # Create a leaf node from every pair.
+                norm_elems = (weight0/nonzero, weight1/nonzero) #Adjust elements
+                node = qvector.node((None, None), norm_elems)  # Create a leaf node from every pair.
                 copy = next((c1_elem for c1_elem in c1 if node == c1_elem), None) #This copies an existing node if it is equal to the one we just created?
                 if copy is not None:
                     node = copy
@@ -137,6 +137,13 @@ class qvector:
                     c1.add(node)
             q.put((node, nonzero))
 
+        qvector.merge_tree(q, c1)
+        (root, weight) = q.get()
+
+        return qvector(root, weight, height)
+
+    @staticmethod
+    def merge_tree(q, c1):
         while q.qsize() > 1:
             node0 = q.get()
             node1 = q.get()
@@ -146,19 +153,16 @@ class qvector:
                 qbc = [None, 0] #qbc will be the next node of one height up?
             else:
                 nonzero = next((x for x in weights if x), None)
-                normelems = tuple([weight / nonzero for weight in weights])
-                qnodeinner = qvector.node(nodes, normelems) #New node
+                norm_elems = tuple([weight / nonzero for weight in weights])
+                qnode_inner = qvector.node(nodes, norm_elems) #New node
                 # TODO: change to something better than O(n) (hash map eq.)
-                copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None) #Check if new node is equivalent to existing one
-                if copyinner is not None:
-                    qnodeinner = copyinner
+                copy_inner = next((c1_elem for c1_elem in c1 if qnode_inner == c1_elem), None) #Check if new node is equivalent to existing one
+                if copy_inner is not None:
+                    qnode_inner = copy_inner
                 else:
-                    c1.add(qnodeinner)
-                qbc = [qnodeinner, nonzero]
+                    c1.add(qnode_inner)
+                qbc = [qnode_inner, nonzero]
             q.put(qbc)
-        (root, weight) = q.get()
-
-        return qvector(root, weight, height)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
@@ -297,10 +301,3 @@ def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."
     a = iter(iterable)
     return zip(a, a)
-
-
-# ---------can be removed - for testing purposes-------------
-if __name__ == '__main__':
-    tree = qvector.to_tree([1, 2, 4, 8, 0, 0, 0, 0])
-    vector = tree.to_vector()
-    print(vector)
