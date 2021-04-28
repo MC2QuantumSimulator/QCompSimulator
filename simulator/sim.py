@@ -9,36 +9,7 @@ from qmatrix import qmatrix
 from qvector import qvector
 import interpreter as interpreter
 
-def main():
-    parser = argparse.ArgumentParser(description='Tree based qasm sim.')
-
-    # Assign a path to the arg 'gates'
-    parser.add_argument('-g', dest='gates', help='File with gates', required=True)
-    # Assign a path to the arg 'circuit'
-    parser.add_argument('-c', dest='circuit', help='qasm file with circuit', required=True)
-    # Assign a path to the arg 'input_state'
-    parser.add_argument('-i', dest='input_state', help='File with input state(s)')
-    group = parser.add_mutually_exclusive_group()
-    # Numbers of shots to return
-    parser.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int)
-    # Prints result in the qiskit representation
-    parser.add_argument('--qiskit', action='store_true', help='Swaps the bit order to match Qiskit')
-    # Wether to save the final vector or calculate probabilities
-    parser.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
-    # Save the matrix instead of calculating anything with it
-    group.add_argument('--saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
-    # Debug: print extra info
-    parser.add_argument('--debug', action='store_true', help='Print extra debug info')
-    args = parser.parse_args()
-
-    gatespath = args.gates
-    circuitpath = args.circuit
-    inputstate = args.input_state
-    shots = args.shots
-    savestate = args.state
-    save_matrix = args.saveMatrix
-    qiskit_ordering = args.qiskit
-    debug = args.debug
+def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qiskit_ordering, debug):
 
     abs_output = os.path.join(os.path.dirname(__file__), "../outputFiles/output.txt")
 
@@ -204,4 +175,34 @@ def swap_significants(vector):
     return swap_arr
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='Tree based qasm sim.')
+
+    # Assign a path to the arg 'gates'
+    parser.add_argument('-g', dest='gates', help='File with gates', required=True)
+    # Assign a path to the arg 'circuit'
+    parser.add_argument('-c', dest='circuit', help='qasm file with circuit', required=True)
+    # Assign a path to the arg 'input_state'
+    parser.add_argument('-i', dest='input_state', help='File with input state(s)')
+    group = parser.add_mutually_exclusive_group()
+    # Numbers of shots to return
+    parser.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int)
+    # Prints result in the qiskit representation
+    parser.add_argument('--qiskit', action='store_true', help='Swaps the bit order to match Qiskit')
+    # Wether to save the final vector or calculate probabilities
+    parser.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
+    # Save the matrix instead of calculating anything with it
+    group.add_argument('--saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
+    # Debug: print extra info
+    parser.add_argument('--debug', action='store_true', help='Print extra debug info')
+    args = parser.parse_args()
+
+    gatespath = args.gates
+    circuitpath = args.circuit
+    inputstate = args.input_state
+    shots = args.shots
+    savestate = args.state
+    save_matrix = args.saveMatrix
+    qiskit_ordering = args.qiskit
+    debug = args.debug
+
+    main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qiskit_ordering, debug)
