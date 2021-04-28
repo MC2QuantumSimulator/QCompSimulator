@@ -220,7 +220,7 @@ class qvector:
 
     def measure(self):
         vector=self.to_vector()
-        res = [round(abs(x)**2,15) for x in vector]
+        res = [abs(x)**2 for x in vector]
         return res
 
     def measureSingle(self, qubit): #Not tested much, but also not necessary?
