@@ -27,15 +27,6 @@ class qmatrix():
                 return self.weights == o.weights
             return self.weights == o.weights and all(id(x) == id(y) for x,y in zip(self.conns, o.conns))
 
-        @classmethod
-        def merge(cls, nodes, heights): # Add propagation of factors.
-            """Merges four nodes into a single node of height one larger"""
-            if all(node is None for node in nodes):
-                raise ValueError("All nodes to be merged are 'None', at most three 'None' allowed") # should we allow all None and return None here?
-            #if (all(node is not None for node in nodes) and (node1.height != node2.height)): # TODO: all not None should be equal
-            #	raise ValueError("height is not equal on nodes to be merged, {} != {}".format(node1.height, node2.height))
-            return cls(nodes, [1 if node is not None else 0 for node in nodes]), max([1 if height is None else height for height in heights]) + 1
-
     def __init__(self, root: node, weight: complex = 1.0, height: int = 1, termination = None):
         self.root = root
         self.weight = weight
@@ -137,11 +128,6 @@ class qmatrix():
 
         return value
 
-    def get_element_no_touple(self,element): #USED IN MATRIX X VECTOR MULT IN QVECTOR
-        size = 1<<(self.height)
-        element_to_touple=(element//size,element%size)
-        return self.get_element(element_to_touple)
-
     def to_matrix(self):
         size = 1 << (self.height)
         arr = []
@@ -151,7 +137,7 @@ class qmatrix():
                 locarr.append(self.get_element((i,j)))
             arr.append(locarr)
         return np.array(arr)
-    
+
     @staticmethod
     def get_matrix_element(matrix: np.ndarray, index: int) -> complex:
         size = matrix.size >> 1 # is 2^2n-1, only one bit is 1
@@ -295,10 +281,3 @@ class qmatrix():
                         sum_nodes += 1
 
         return sum_nodes
-
-    # Is this needed at all?
-    @classmethod
-    def copy(cls, original):
-        "Returns a qmatrix that is separate from the original object"
-        # TODO: Use DFS instead to make a copy of a qmatrix. Prototype version; to_matrix -> to_tree
-        return qmatrix.to_tree(original.to_matrix())
