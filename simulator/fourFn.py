@@ -25,7 +25,7 @@ from pyparsing import (
     Suppress,
     delimitedList,
 )
-from sympy import symbols
+from sympy import *
 import math
 import cmath
 import operator
@@ -155,8 +155,7 @@ def evaluate_stack(s):
     elif op == "i":
         return cmath.sqrt(-1)
     elif op == "x":
-        x = symbols('x')
-        return x
+        return symbols('x')
     elif op in fn:
         # note: args are pushed onto the stack in reverse order
         args = reversed([evaluate_stack(s) for _ in range(num_args)])
