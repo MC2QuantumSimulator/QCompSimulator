@@ -221,47 +221,6 @@ class qvector:
         res = [abs(x)**2 for x in vector]
         return res
 
-    def measureSingle(self, qubit): #Not tested much, but also not necessary?
-        import random
-        def collapse(outcome, normalization):
-            if outcome:
-                not_outcome = 0
-            else:
-                not_outcome = 1
-
-            q = LifoQueue()
-            q.put((self.root , 0)) # Second part of tuple is the current qubit ( depth ). Starts q_0
-
-            while q.qsize() != 0:
-                (node,depth) = q.get()
-                if(depth < qubit):
-                    for i in [0,1]:
-                        q.add((node.conns(i), depth + 1))
-                else:
-                    node.conns[not_outcome] = None #Why are these touples again? Isn't that kind of annoying
-                    node.weights[not_outcome] = 0
-                    node.weights[outcome] /= normalization
-
-        if qubit > self.height:
-            raise ValueError("The qubit ", qubit, "does not exist in the vector of height ", self.height)
-
-        size = 1 << self.height
-        sub_vectors = 1 << (qubit + 1)
-        sub_vector_size = size//sub_vectors
-        probability_zero = 0
-        for i in range(sub_vectors//2): #This can be done in parallell?
-            for j in range(sub_vector_size):
-                probability_zero += self.get_element(i*sub_vector_size*2+j)**2 #Is the method in the paper more efficient?
-                #probability_one += self.get_element(i*sub_vector_size*2+j+sub_vector_size)**2 #Not needed because = 1 - probability_zero ?
-
-        random = random.random() #Float between 0 and 1
-        if random <= probability_zero:
-            collapse(0, math.sqrt(probability_zero)) # Should we check if the vector is still normalized for testing purposes?
-            return 0 #No need to return?
-        else:
-            collapse(1, math.sqrt(1-probability_zero))
-            return 1 #No need to return?
-
     def number_of_nodes(self):
         "Returns the number of unique nodes in the tree"
         # LIFO queue to store nodes to be traversed
