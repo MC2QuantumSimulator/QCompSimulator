@@ -6,6 +6,8 @@ import sys
 from qvector import qvector
 from qmatrix import qmatrix
 import ParseInput
+from sympy import symbols
+import fourFn
 
 
 headers = ['OPENQASM', 'include']
@@ -49,7 +51,13 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
         # Creates quantum register of n bits
         if var == 'qreg':
             height = get_int(split[1])
-            qmat = qmatrix.id(height) # The qmatrix that will acumulate all the operations
+            qmat = qmatrix.id(height) #The qmatrix that will acumulate all the operations
+
+        # If the parameterized gate is supported append var and op
+        elif is_parameterized_name(var):
+            if is_valid_paragate(var, gate_names):
+                variables.append(split[0])
+                operations.append(split[1])
         # If the gate is supported append var and op
         elif var in gate_names: 
             variables.append(split[0])
@@ -61,9 +69,36 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
 
     for index, var in enumerate(variables):
 
-        ivar = gate_names.index(var)
-        gate = qmatrix.to_tree(np.array(gate_matrix[ivar])) 
-        qbit = get_int(operations[index])
+        # get the index for a gate with its name
+        if is_valid_paragate(var,gate_names): # special case for parameterized gates
+            ivar = gate_names.index(corresponding_gate(var,gate_names))
+
+            #get the variable value
+            tmp = get_variable_val(var)
+            val = fourFn.eval(tmp)
+
+            #initiate variable x in the parameterized gate
+            current_Gate = gate_matrix[ivar]
+            dimension = len(current_Gate)
+            for i in range(dimension):
+                for j in range(dimension):
+                    try:
+                        x = symbols('x')
+                        elem = current_Gate[i][j]
+                        current_Gate[i][j] = elem.subs(x, val)
+                        print(current_Gate[i][j])
+                        continue
+                    except AttributeError:
+                        print("")  # wanted to do nothing here -> empty print, it is ugly ik
+
+            gate = qmatrix.to_tree(np.array(gate_matrix[ivar]))
+            qbit = get_int(operations[index])
+        else:
+            ivar = gate_names.index(var)
+            gate = qmatrix.to_tree(np.array(gate_matrix[ivar]))
+            qbit = get_int(operations[index])
+
+
         
         # Applies a gate to every q bit
         if qbit == -1: 
@@ -99,7 +134,43 @@ def gatepadding(gate: qmatrix, pre_n: int, tot_len: int) -> qmatrix:
     #print(gate.to_matrix())
     return gate
 
-        
+def is_parameterized_name(gate_name):
+    if "(" in gate_name:
+        return True
+
+    return False
+
+def is_valid_paragate(gate_name, gate_names):
+    gName = gate_name.split("(")
+    if len(gName) < 2:
+        return False
+
+    gName = gName[0] + gName[1].split(")")[1]
+
+    for gate in gate_names:
+        if is_parameterized_name(gate):
+            gate2 = gate.split("(")
+            gate2 = gate2[0] + gate2[1].split(")")[1]
+            if gName == gate2:
+                return True
+    return False
+
+def corresponding_gate(gate_name, gate_names):
+    gName = gate_name.split("(")
+    gName = gName[0] + gName[1].split(")")[1]
+
+    for gate in gate_names:
+        if is_parameterized_name(gate):
+            gate2 = gate.split("(")
+            gate2 = gate2[0] + gate2[1].split(")")[1]
+            if gName == gate2:
+                return gate
+    return gName
+def get_variable_val(var):
+    var = var.split("(")
+    var = var[1].split(")")
+    val = var[0]
+    return val
 
 if __name__ == '__main__':
     abs_qasm = os.path.join(os.path.dirname(__file__), "../inputFiles/qasm.txt")
