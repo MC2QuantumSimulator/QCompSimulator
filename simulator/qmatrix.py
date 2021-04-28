@@ -64,12 +64,6 @@ class qmatrix():
         else:
             secondconns = second.conns
             secondweights = second.weights
-        if height > 1:
-            conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1]), termnode) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
-            conns = tuple([None if not item else item[0] for item in conns_n_weights])
-            weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
-        else:
-            conns = (None, None)
         if height <= 1:
             weights_here1 = tuple([x*weights_parent[0] for x in firstweights])
             weights_here2 = tuple([x*weights_parent[1] for x in secondweights])
@@ -78,10 +72,11 @@ class qmatrix():
             normelems = tuple([weight / nonzero for weight in weights_here])
             node = cls.cache_node((termnode, termnode, termnode, termnode), normelems)
             return (node, nonzero)
-
+        conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1]), termnode) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
+        conns = tuple([None if not item else item[0] for item in conns_n_weights])
+        weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
         nonzero = next((x for x in weights_from_children if x), 1)
         normelems = tuple([weight / nonzero for weight in weights_from_children])
-        
         node = cls.cache_node(conns, normelems)
         return (node, nonzero)
 
@@ -97,9 +92,9 @@ class qmatrix():
     def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: float, termnode: node) -> node:
         if not first or not second:
             return (None, 0)
-        newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])
-        newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3))])
         if height <= 1:
+            newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])
+            newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3))])
             retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
             nonzero = next((x for x in retweights if x), 1)
             normelems = tuple([weight / nonzero for weight in retweights])
