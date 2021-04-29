@@ -1,24 +1,20 @@
-import sys
 
+from sympy import symbols
 import numpy as np
 import os
-import math
+
 import fourFn
+
 
 # Checks if a matrix is unitary
 def is_unitary(matrix):
-        return np.allclose(np.eye(len(matrix)), matrix * matrix.H)
+    return np.allclose(np.eye(len(matrix)), matrix * matrix.H)
+
 
 class ParseInput:
 
-#TODO error messages on which specific line
-#TODO add Global wieght
-#TODO add support for the trigonometric functions
-#TODO Add bracket syntax
-#TODO delete the size column in input
-
     def parse_gates(input_file):
-        
+
         f = open(input_file, 'r')
         gates_string_list = f.readlines()
         f.close()
@@ -37,7 +33,7 @@ class ParseInput:
 
         # Go over each gate and turn into a matrix if it's unitary.
         for index, gate in enumerate(gates_string_form):
-            #split  and trim global weight and gate definition
+            # split  and trim global weight and gate definition
             split = gate.split('[')
             gate = split[1].replace(']', '')
 
@@ -53,12 +49,13 @@ class ParseInput:
             dimension = len(rows)
             matrix = [[0 for _ in range(dimension)] for _ in range(dimension)]
 
-            #Check for global variable
+            # Check for global variable
             if split[0] == '':
                 # Put elements in matrix
                 for i in range(dimension):
                     for j in range(dimension):
                         matrix[i][j] = fourFn.eval(elements.pop(0))
+
             else:
                 global_var = split[0].strip('*')
                 global_var = fourFn.eval(global_var)
@@ -66,20 +63,24 @@ class ParseInput:
                 # Put elements in matrix
                 for i in range(dimension):
                     for j in range(dimension):
-                        matrix[i][j] = fourFn.eval(elements.pop(0))*global_var
+                        matrix[i][j] = fourFn.eval(elements.pop(0)) * global_var
 
-            # Checks if matrix is unitary and adds it to 'gates_matrix_form' if so        
-            if not is_unitary(np.matrix(matrix)):
-                print(gate_names[index] + ": is not unitary")
-                #gate_names.pop(index)
-                not_unitary.append(index)
+            # Checks if matrix is unitary and adds it to 'gates_matrix_form' if so
+            try:
+                if is_unitary(np.matrix(matrix)):
+                    gates_matrix_form.append(matrix)
+                    print(matrix)
+                elif not is_unitary(np.matrix(matrix)):
+                    print(gate_names[index] + ": is not unitary")
+                    # gate_names.pop(index)
+                    not_unitary.append(index)
                 continue
+            except TypeError:
+                gates_matrix_form.append(matrix)
+                print(matrix)
 
-            gates_matrix_form.append(matrix)
-            #print(matrix)
-        
         # Deletes the non-unitary gate names.
-        for index in range(len(not_unitary)-1,-1,-1):
+        for index in range(len(not_unitary) - 1, -1, -1):
             gate_names.pop(not_unitary[index])
 
         lines = []
@@ -88,16 +89,15 @@ class ParseInput:
 
         return gate_names, gates_matrix_form
 
-
-
-
     if __name__ == '__main__':
-        abs_input = os.path.join(os.path.dirname(__file__), "../inputFiles/gates.txt") # Always gives the correct path (atleast for Linux)
-        
-        
-        gates = parse_gates(abs_input)
-        
-        #output_gates(abs_output, gates)
-       
+        abs_input = os.path.join(os.path.dirname(__file__),
+                                 "../inputFiles/gates.txt")  # Always gives the correct path (atleast for Linux)
 
-            
+        gates = parse_gates(abs_input)
+
+        # output_gates(abs_output, gates)
+
+
+
+
+
