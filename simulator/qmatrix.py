@@ -1,9 +1,15 @@
 import math
 import queue
+import sys
 import numpy as np
+from functools import lru_cache
 
 class qmatrix():
-    
+
+    # Recursion limit can be changed
+    sys.setrecursionlimit(1500)
+    cache_size = 1024
+
     class node():
 
         def __init__(self, conns: list, weights: list):
@@ -11,11 +17,15 @@ class qmatrix():
             self.weights = weights
 
         def __hash__(self) -> int:
-            return hash((self.conns, self.weights))
+            return hash((0 if not self.conns else (0 if not conn else id(conn) for conn in self.conns), self.weights))
 
         def __eq__(self, o: object) -> bool:
             """Assumes only one copy of earlier nodes exist"""
-            return False if not o else (self.conns == o.conns and self.weights == o.weights)
+            if not o:
+                return False
+            if not self.conns and not o.conns:
+                return self.weights == o.weights
+            return self.weights == o.weights and all(id(x) == id(y) for x,y in zip(self.conns, o.conns))
 
         @classmethod
         def merge(cls, nodes, heights): # Add propagation of factors.
@@ -33,144 +43,84 @@ class qmatrix():
         self.termination = termination
 
     @classmethod
-    def mult(cls, first, second):
-        # Plan: Create node from the top with no childsm and put it in a queue. Take node from queue and check if it's childless. If it is, create childs of lower height and put in queue. Get from queue ( last in first out ) same node and check if childless,
-        # if yes, create child. When at depth 1, set weights. Doing it this way should finish one side of the tree first. When weights have been set, can start propagating factors.
+    @lru_cache(maxsize=cache_size)
+    def cache_node(cls, conns, weights):
+        return cls.node(conns, weights)
 
-        def z_order_better(index, size, deBruijn):
-            #i=0
-            #for y in deBruijn:
-            #    for x in deBruijn:
-            #        if index == x + 2*y:
-            #            return i
-            #        i+=1
-            #print("z_order_better sucks")
-            start = 0
-            sub_index = 0
-            if index >= size**2 // 2:
-                start += size**2//2
-                if index >= size**2*3//4:
-                    start+= size//2
-            elif index >= size**2 // 4:
-                start += size // 2
+    @classmethod
+    @lru_cache(maxsize=cache_size)
+    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple, termnode) -> node:
+        if not first and not second:
+            return (None, 0)
+        if not first:
+            firstconns = (None, None, None, None)
+            firstweights = (0, 0, 0, 0)
+        else:
+            firstconns = first.conns
+            firstweights = first.weights
+        if not second:
+            secondconns = (None, None, None, None)
+            secondweights = (0, 0, 0, 0)
+        else:
+            secondconns = second.conns
+            secondweights = second.weights
+        if height > 1:
+            conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1]), termnode) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
+            conns = tuple([None if not item else item[0] for item in conns_n_weights])
+            weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
+        else:
+            conns = (None, None)
+        if height <= 1:
+            weights_here1 = tuple([x*weights_parent[0] for x in firstweights])
+            weights_here2 = tuple([x*weights_parent[1] for x in secondweights])
+            weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
+            nonzero = next((x for x in weights_here if x), 1)
+            normelems = tuple([weight / nonzero for weight in weights_here])
+            node = cls.cache_node((termnode, termnode, termnode, termnode), normelems)
+            return (node, nonzero)
 
-            while index != deBruijn[start%size]+2*deBruijn[start//size]:
-                start +=2
-                sub_index+=2
-                if sub_index == size // 2:
-                    start+=size // 2
-                    sub_index = 0
-            return [start,start+1,start+size,start+size+1]
-
-        def moserDeBruijn(size):  # Will be a vector of length 2^qubits=size
-            def gen(n):
-                S = [0, 1]
-                for i in range(2, n + 1):
-                    if i % 2 == 0:
-                        S.append(4 * S[int(i / 2)])
-                    else:
-                        S.append(4 * S[int(i / 2)] + 1)
-                z = S[n]
-                return z
-            sequence = []
-            for i in range(size):
-                sequence.append(gen(i))
-            return sequence
-
-        def get_parent_order(matrix_index, first): #Uses new root and current leg to put nodes in a list that can be used to propagate
-                                #factors upwards
-            q = queue.LifoQueue()
-            current_leg_to_touple=(matrix_index//size,matrix_index%size)
-            sub_size= 1<<(first.height-1)
-            target = new_root
-            while sub_size > 0:
-                goto = 0
-                if current_leg_to_touple[0] & sub_size:
-                    goto += 2
-                if current_leg_to_touple[1] & sub_size:
-                    goto += 1
-                q.put((target,goto))
-                target = target.conns[goto]
-                sub_size = sub_size >> 1
-            return q
-
+        nonzero = next((x for x in weights_from_children if x), 1)
+        normelems = tuple([weight / nonzero for weight in weights_from_children])
         
-        def set_weight(matrix_index, size):
-            weight = 0
-            for i in range(size):
-                weight += first.get_element_no_touple((matrix_index // size) * size + i) * second.get_element_no_touple(
-                    matrix_index % size + i * size)
-            return weight
+        node = cls.cache_node(conns, normelems)
+        return (node, nonzero)
 
-        if (first.height != second.height):
-            raise ValueError("Dimensions do not match, mult between ", first.to_matrix(), second.to_matrix())
+    @classmethod
+    def add_matrices(cls, first, second):
+        # Used for debugging the add_nodes func, not needed for sim
+        termnode = cls.node(None, None)
+        new_node, norm = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight), termnode)
+        return cls(new_node, norm, first.height, first.termination)
 
-        height = first.height
-        size = 2 ** height
-        deBruijn = moserDeBruijn(size)
-        q = queue.LifoQueue() #For constructing the tree top to bottom (without weights)
-        new_root = cls.node([None] * 4, [1] * 4)  # Will be root node of resulting tree.
-        q.put((new_root, height))
-        termnode = qmatrix.node(None, None)
-        c1 = []
-        q_prop = queue.Queue() #Used for traversing back up, propagating factors once weights have been set. Separate queue to not affect building of remaining tree.
-        global_weight = 1
-        current_leg = 0  # Only used in set_weight(). Keeps track of which bottom leg is being calculated.
-        while q.qsize() != 0:
-            (curr_node, height) = q.get()
-            if height == 1: #Arrived at a leaf node
-                legs=z_order_better(current_leg, size, deBruijn) #Gives corresponding matrix indices of the legs of current node
-                curr_node.weights = [set_weight(legs[0], size), set_weight(legs[1], size), set_weight(legs[2], size),set_weight(legs[3], size)]
-                parents = get_parent_order(legs[0], first) #Gets a list of the parents and the ways to traverse them to get to this leg. Used for propagation of factors
-                if parents.qsize() == 1: #Only if matrix is 2*2, no need to propagate
-                    curr_node.conns = [termnode] * 4
-                    break
-                parents.get() #Getting rid of leaf node. Next one is its actual parent.
-                (parent,child_index) = parents.get() #This node's parent and index of connection
-                current_leg += 4
-                curr_node.conns = [termnode] * 4 #Attaching termnode to leaf indicates it has been handled and factors have been propagated.
-                if all(weight == 0 for weight in curr_node.weights):
-                    curr_node = None
-                    propagated_factor = 0
-                else:
-                    propagated_factor = next((x for x in curr_node.weights if x), None)
-                    curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
-                    copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
-                    if copy is not None:
-                        curr_node = copy
-                    else:
-                        c1.append(curr_node)
-                    q_prop.put((parent,child_index, curr_node, propagated_factor)) #Here we start propagating factors up to parents.
-                while q_prop.qsize() != 0: #This part deals with parents of parent above leaf node.
-                    (curr_node,child_index, child, propagated_factor) = q_prop.get()
-                    curr_node.weights[child_index] *= propagated_factor
-                    if propagated_factor == 0:
-                        curr_node.conns[child_index] = termnode
-                    # Now check if factor should be propagated upwards or not.
-                    else:
-                        # If prop factor is not 0, and all connections of all curr_node's children are None,
-                        # a factor has not yet been propagated and this one can be. Once the factor has been propagated,
-                        # this node will have a child that is not None and so no further factors will be propagated.
-                        if all(curr_node.conns[n] is termnode for n in range(0, child_index)): #If this is the first nonzero propagated factor then propagate
-                            curr_node.weights = [weight / propagated_factor for weight in curr_node.weights]
-                            if parents.qsize() > 0:
-                                (parent,child_index) = parents.get()
-                                q_prop.put((parent,child_index, curr_node, propagated_factor))
-                            else:
-                                global_weight = propagated_factor
-                    copy = next((c1_elem for c1_elem in c1 if curr_node == c1_elem), None)
-                    if copy is not None:
-                        curr_node = copy
-                    else:
-                        c1.append(curr_node)
-            else:
-                for i in [3, 2, 1, 0]: #The actual building of tree using placeholder nodes.
-                    if curr_node.conns[i] is None:
-                        new_node = cls.node([None] * 4, [1] * 4)
-                        curr_node.conns[i] = new_node
-                        q.put((new_node, height - 1))
+    @classmethod
+    @lru_cache(maxsize=cache_size)
+    def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: float, termnode: node) -> node:
+        if not first or not second:
+            return (None, 0)
+        newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,0,2,2),(0,1,0,1))])
+        newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,1,3,3),(2,3,2,3))])
+        if height <= 1:
+            retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
+            nonzero = next((x for x in retweights if x), 1)
+            normelems = tuple([weight / nonzero for weight in retweights])
+            node = cls.cache_node((termnode, termnode, termnode, termnode), normelems)
+            return (node, nonzero*weight_from_parent)
+        newconnsleft_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, first.weights[x]*second.weights[y], termnode) for x,y in zip((0,0,2,2),(0,1,0,1))])
+        newconnsright_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, first.weights[x]*second.weights[y], termnode) for x,y in zip((1,1,3,3),(2,3,2,3))])
+        newconnsleft = tuple([None if not item else item[0] for item in newconnsleft_n_weights])
+        newconnsright = tuple([None if not item else item[0] for item in newconnsright_n_weights])
+        weightpropleft = tuple([0 if not item else item[1] for item in newconnsleft_n_weights])
+        weightpropright = tuple([0 if not item else item[1] for item in newconnsright_n_weights])
+        newleft = cls.node(newconnsleft, weightpropleft)
+        newright = cls.node(newconnsright, weightpropright)
+        result, weight = cls.add_nodes(newleft, newright, height, (1, 1), termnode)
+        return (result, weight*weight_from_parent)
 
-        return qmatrix(new_root, global_weight, first.height)
+    @classmethod
+    def mult(cls, first, second):
+        termnode = cls.node(None, None)
+        new_node, weight = cls.mult_nodes(first.root, second.root, first.height, first.weight*second.weight, termnode)
+        return cls(new_node, weight, first.height, termnode)
 
     def get_element(self, index: tuple) -> complex:
         size = 1<<(self.height-1)
