@@ -74,11 +74,11 @@ def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qisk
         for output in outputstates:
             print("")
             if qiskit_ordering:
-                print("Statevector: " + repr(swap_significants(output.to_vector())))
-                print("Probability: " + repr(swap_significants(output.measure())))
+                print("Statevector: " + repr([round(x,7) for x in swap_significants(output.to_vector())]))
+                print("Probability: " + repr([round(x,7) for x in swap_significants(output.measure())]))
             else:
-                print("Statevector: " + repr(output.to_vector()))
-                print("Probability: " + repr(output.measure()))
+                print("Statevector: " + repr([round(x,7) for x in output.to_vector()]))
+                print("Probability: " + repr([round(x,7) for x in output.measure()]))
         
 
         # Clears that "shots.txt" file, needed for multiple inputs
@@ -103,7 +103,7 @@ def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qisk
                     if shots: shoot(output.to_vector(),shots, qiskit_ordering)
                     temp = output.measure()
                     if qiskit_ordering: temp = swap_significants(temp)
-                    f.write(repr(temp) + "\n")
+                    f.write(repr([round(x,15) for x in temp]) + "\n") # The rounding is for numbers like 0.499..
         
 
         
@@ -132,7 +132,7 @@ def write_matrix_to_file(save_matrix, qc):
 def shoot(vector, reps, qiskit_ordering):
     abs_shots = os.path.join(os.path.dirname(__file__), "../outputFiles/shots.txt")
     f = open(abs_shots, 'a')
-    probs = [round(abs(x)**2,7) for x in vector]
+    probs = [abs(x)**2 for x in vector]
 
     # Amount of bits
     n_bits = int(np.log2(len(vector)))

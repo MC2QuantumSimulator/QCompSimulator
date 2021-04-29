@@ -40,10 +40,7 @@ def parse_qasm(qasm_file, gate_names, gate_matrix):
 
     variables = []
     operations = []
-    for x in range(3,1,-1): print(x)
-    print("hej")
-    for x in range(1,3): print(x)
-    print("då")
+    
 
     q = None
     # Splits qasm into variable name and
