@@ -2,25 +2,120 @@ import gc
 import math
 from queue import Queue, LifoQueue
 import numpy as np
+from functools import lru_cache
+import sys
 
 
 class qvector:
+
+    # Recursion limit can be changed
+    sys.setrecursionlimit(1500)
+    cache_size = 1024
+
     class node:
         def __init__(self, conns, weights):
             self.conns = conns
             self.weights = weights
 
         def __hash__(self) -> int:
-            return hash((self.conns, self.weights))
+            return hash((0 if not self.conns else (0 if not conn else id(conn) for conn in self.conns), self.weights))
 
         def __eq__(self, o: object) -> bool:
             """Assumes only one copy of earlier nodes exist"""
-            return False if not o else self.conns == o.conns and self.weights == o.weights
+            if not o:
+                return False
+            if not self.conns and not o.conns:
+                return self.weights == o.weights
+            return self.weights == o.weights and all(id(x) == id(y) for x,y in zip(self.conns, o.conns))
 
     def __init__(self, root, weight, height):
         self.root = root
         self.weight = weight
         self.height = height
+
+    @classmethod
+    @lru_cache(maxsize=cache_size)
+    def cache_node(cls, conns, weights):
+        return cls.node(conns, weights)
+
+    @classmethod
+    @lru_cache(maxsize=cache_size)
+    def add_nodes(cls, first: node, second: node, height: int, weights_parent: tuple) -> node:
+        if not first and not second:
+            return (None, 0)
+        if not first:
+            firstconns = (None, None)
+            firstweights = (0, 0)
+        else:
+            firstconns = first.conns
+            firstweights = first.weights
+        if not second:
+            secondconns = (None, None)
+            secondweights = (0, 0)
+        else:
+            secondconns = second.conns
+            secondweights = second.weights
+        if height > 1:
+            conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1])) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
+            conns = tuple([None if not item else item[0] for item in conns_n_weights])
+            weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
+        else:
+            conns = (None, None)
+        if height <= 1:
+            weights_here1 = tuple([x*weights_parent[0] for x in firstweights])
+            weights_here2 = tuple([x*weights_parent[1] for x in secondweights])
+            weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
+            nonzero = next((x for x in weights_here if x), 1)
+            normelems = tuple([weight / nonzero for weight in weights_here])
+            node = cls.cache_node(conns, normelems)
+            return (node, nonzero)
+
+        nonzero = next((x for x in weights_from_children if x), 1)
+        normelems = tuple([weight / nonzero for weight in weights_from_children])
+        
+        node = cls.cache_node(conns, normelems)
+        return (node, nonzero)
+
+    @classmethod
+    def add_vectors(cls, first, second):
+        if not first.root:
+            return second
+        if not second.root:
+            return first
+        # TODO: nuke first and second
+        # Used for debugging the add_nodes func, not needed for sim
+        new_node, norm = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight))
+        return cls(new_node, norm, first.height)
+
+    @classmethod
+    @lru_cache(maxsize=cache_size)
+    def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: float) -> node:
+        if not first or not second:
+            return (None, 0)
+        newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,2),(0,0))])
+        newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,3),(1,1))])
+        if height <= 1:
+            retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
+            nonzero = next((x for x in retweights if x), 1)
+            normelems = tuple([weight / nonzero for weight in retweights])
+            node = cls.cache_node((None, None), normelems)
+            return (node, nonzero*weight_from_parent)
+        newconnsleft_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, first.weights[x]*second.weights[y]) for x,y in zip((0,2),(0,0))])
+        newconnsright_n_weights = tuple([cls.mult_nodes(first.conns[x], second.conns[y], height-1, first.weights[x]*second.weights[y]) for x,y in zip((1,3),(1,1))])
+        newconnsleft = tuple([None if not item else item[0] for item in newconnsleft_n_weights])
+        newconnsright = tuple([None if not item else item[0] for item in newconnsright_n_weights])
+        weightpropleft = tuple([0 if not item else item[1] for item in newconnsleft_n_weights])
+        weightpropright = tuple([0 if not item else item[1] for item in newconnsright_n_weights])
+        newleft = cls.node(newconnsleft, weightpropleft)
+        newright = cls.node(newconnsright, weightpropright)
+        result, weight = cls.add_nodes(newleft, newright, height, (1, 1))
+        return (result, weight*weight_from_parent)
+
+    @classmethod
+    def mult(cls, first, second):
+        # TODO: nuke first and second
+        new_node, weight = cls.mult_nodes(first.root, second.root, first.height, first.weight*second.weight)
+        return cls(new_node, weight, first.height)
 
     @staticmethod
     def to_tree(vector_arr):
@@ -32,20 +127,20 @@ class qvector:
         # initializing q
         q = Queue(0)
 
-        c1 = [] #List of unique nodes
+        c1 = set() #List of unique nodes
         for weight0, weight1 in pairwise(iter(vector_arr)):  # lump the array in pairs
             if weight0 == 0 and weight1 == 0:
                 node = None
                 nonzero = 0
             else:
                 nonzero = weight0 if weight0 != 0 else weight1 #Factor for propagation
-                normelems = [weight0/nonzero, weight1/nonzero] #Adjust elements
-                node = qvector.node([None]*2, normelems)  # Create a leaf node from every pair.
+                normelems = (weight0/nonzero, weight1/nonzero) #Adjust elements
+                node = qvector.node((None, None), normelems)  # Create a leaf node from every pair.
                 copy = next((c1_elem for c1_elem in c1 if node == c1_elem), None) #This copies an existing node if it is equal to the one we just created?
                 if copy is not None:
                     node = copy
                 else:
-                    c1.append(node)
+                    c1.add(node)
             q.put((node, nonzero))
 
         while q.qsize() > 1:
@@ -57,37 +152,19 @@ class qvector:
                 qbc = [None, 0] #qbc will be the next node of one height up?
             else:
                 nonzero = next((x for x in weights if x), None)
-                normelems = [weight / nonzero for weight in weights]
+                normelems = tuple([weight / nonzero for weight in weights])
                 qnodeinner = qvector.node(nodes, normelems) #New node
                 # TODO: change to something better than O(n) (hash map eq.)
                 copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None) #Check if new node is equivalent to existing one
                 if copyinner is not None:
                     qnodeinner = copyinner
                 else:
-                    c1.append(qnodeinner)
+                    c1.add(qnodeinner)
                 qbc = [qnodeinner, nonzero]
             q.put(qbc)
         (root, weight) = q.get()
 
         return qvector(root, weight, height)
-
-    @classmethod
-    def mult(cls,matrix_tree,vector_tree):
-        def set_weight(current_leg):
-            weight = 0
-            for i in range(size):
-                weight += matrix_tree.get_element_no_touple(current_leg*size+i) * vector_tree.get_element(i)
-            return weight
-
-        if (matrix_tree.height != vector_tree.height):
-            raise ValueError("Dimensions do not match, mult between ", matrix_tree.to_matrix(), vector_tree.to_vector())
-
-        size = 2 ** matrix_tree.height
-        vec_arr_result = []
-        for current_leg in range(size):
-            vec_arr_result.append(set_weight(current_leg))
-
-        return cls.to_tree(vec_arr_result)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
@@ -119,8 +196,8 @@ class qvector:
                 # If current node is a leaf node (Both conns are None)
                 # push left and right leg-value onto stack
                 if curr.conns[0] is None and curr.conns[1] is None and height == 1:
-                    s2.append(round(curr.weights[0]*weight,7))
-                    s2.append(round(curr.weights[1]*weight,7))
+                    s2.append(curr.weights[0]*weight)
+                    s2.append(curr.weights[1]*weight)
 
         return s2
 
@@ -143,7 +220,7 @@ class qvector:
 
     def measure(self):
         vector=self.to_vector()
-        res = [round(abs(x)**2,7) for x in vector]
+        res = [abs(x)**2 for x in vector]
         return res
 
     def measureSingle(self, qubit): #Not tested much, but also not necessary?
@@ -211,6 +288,16 @@ class qvector:
                         sum_nodes += 1
 
         return sum_nodes
+
+    @classmethod
+    def zero_state(cls, n):
+        "Returns a Qvector of height n representing the |0> state"
+        # Create the first layer
+        zero_node = cls.node((None,None), (1,0))
+        # Add n-1 more layers, pointing at the new result each time
+        for _ in range(n-1):
+            zero_node = cls.node((zero_node,None), (1,0))
+        return cls(zero_node, 1, n)
 
 def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."
