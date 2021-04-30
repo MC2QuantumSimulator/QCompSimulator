@@ -71,14 +71,15 @@ def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qisk
             outputstates.append(qvector.mult(qmat,qv))
         
         # Mostly for debugging
-        for output in outputstates:
-            print("")
-            if qiskit_ordering:
-                print("Statevector: " + repr(swap_significants(output.to_vector())))
-                print("Probability: " + repr(swap_significants(output.measure())))
-            else:
-                print("Statevector: " + repr(output.to_vector()))
-                print("Probability: " + repr(output.measure()))
+        if debug:
+            for output in outputstates:
+                print("")
+                if qiskit_ordering:
+                    print("Statevector: " + repr(swap_significants(output.to_vector())))
+                    print("Probability: " + repr(swap_significants(output.measure())))
+                else:
+                    print("Statevector: " + repr(output.to_vector()))
+                    print("Probability: " + repr(output.measure()))
         
 
         # Clears that "shots.txt" file, needed for multiple inputs
@@ -132,7 +133,7 @@ def write_matrix_to_file(save_matrix, qc):
 def shoot(vector, reps, qiskit_ordering):
     abs_shots = os.path.join(os.path.dirname(__file__), "../outputFiles/shots.txt")
     f = open(abs_shots, 'a')
-    probs = [round(abs(x)**2,7) for x in vector]
+    probs = [abs(x)**2 for x in vector]
 
     # Amount of bits
     n_bits = int(np.log2(len(vector)))
