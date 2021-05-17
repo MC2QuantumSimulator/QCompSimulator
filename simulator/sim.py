@@ -9,7 +9,7 @@ from qmatrix import qmatrix
 from qvector import qvector
 import interpreter as interpreter
 
-def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qiskit_ordering, debug):
+def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qiskit_ordering, debug, test):
 
     abs_output = os.path.join(os.path.dirname(__file__), "../outputFiles/output.txt")
 
@@ -74,10 +74,10 @@ def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qisk
         for output in outputstates:
             print("")
             if qiskit_ordering:
-                print("Statevector: " + repr([round(x,7) for x in swap_significants(output.to_vector())]))
+                print("State vector: " + repr([round(x,7) for x in swap_significants(output.to_vector())]))
                 print("Probability: " + repr([round(x,7) for x in swap_significants(output.measure())]))
             else:
-                print("Statevector: " + repr([round(x,7) for x in output.to_vector()]))
+                print("State vector: " + repr([round(x,7) for x in output.to_vector()]))
                 print("Probability: " + repr([round(x,7) for x in output.measure()]))
         
 
@@ -86,6 +86,12 @@ def main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qisk
         f = open(abs_shots, 'w')
         f.write("")
         f.close()
+
+        if test:
+            for output in outputstates:
+                temp = output.to_vector()
+                if qiskit_ordering: temp = swap_significants(temp)
+                return temp
 
         # Prints either state or output vectors
         if savestate:
@@ -118,7 +124,7 @@ def write_matrix_to_file(save_matrix, qc):
             f.write('[')
             for y in range(1 << qc.height):
                 string = ', ' if y != 0 else ''
-                string += repr(round(qc.get_element((x, y)),7))
+                string += repr(qc.get_element((x, y)))
                 f.write(string)
             f.write(']')
             if x != z:
@@ -185,15 +191,17 @@ if __name__ == '__main__':
     parser.add_argument('-i', dest='input_state', help='File with input state(s)')
     group = parser.add_mutually_exclusive_group()
     # Numbers of shots to return
-    parser.add_argument('--shots', help='Return a number of bitstrings from final vector probabilities', type=int)
+    parser.add_argument('-shots', help='Return a number of bitstrings from final vector probabilities', type=int)
     # Prints result in the qiskit representation
-    parser.add_argument('--qiskit', action='store_true', help='Swaps the bit order to match Qiskit')
+    parser.add_argument('-flipOrder', action='store_true', help='Swaps the bit order to match Qiskit')
     # Wether to save the final vector or calculate probabilities
-    parser.add_argument('--state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
+    parser.add_argument('-state', action='store_true', help='Print the final vector to output.txt instead of calculating probabilities')
     # Save the matrix instead of calculating anything with it
-    group.add_argument('--saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
+    group.add_argument('-saveMatrix', help='Print the final matrix to path instead of multiplying with a vector')
     # Debug: print extra info
-    parser.add_argument('--debug', action='store_true', help='Print extra debug info')
+    parser.add_argument('-debug', action='store_true', help='Print extra debug info')
+    # Test: used for test file. Don't use this
+    parser.add_argument('-test', action='store_true', help='Returns state vector')
     args = parser.parse_args()
 
     gatespath = args.gates
@@ -202,7 +210,8 @@ if __name__ == '__main__':
     shots = args.shots
     savestate = args.state
     save_matrix = args.saveMatrix
-    qiskit_ordering = args.qiskit
+    qiskit_ordering = args.flipOrder
     debug = args.debug
+    test = -args.test
 
-    main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qiskit_ordering, debug)
+    main(gatespath, circuitpath, inputstate, shots, savestate, save_matrix, qiskit_ordering, debug, test)
