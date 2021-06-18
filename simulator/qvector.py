@@ -55,24 +55,19 @@ class qvector:
         else:
             secondconns = second.conns
             secondweights = second.weights
-        if height > 1:
-            conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1])) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
-            conns = tuple([None if not item else item[0] for item in conns_n_weights])
-            weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
-        else:
-            conns = (None, None)
         if height <= 1:
             weights_here1 = tuple([x*weights_parent[0] for x in firstweights])
             weights_here2 = tuple([x*weights_parent[1] for x in secondweights])
             weights_here = tuple([sum(x) for x in zip(weights_here1, weights_here2)])
             nonzero = next((x for x in weights_here if x), 1)
             normelems = tuple([weight / nonzero for weight in weights_here])
-            node = cls.cache_node(conns, normelems)
+            node = cls.cache_node((None, None), normelems)
             return (node, nonzero)
-
+        conns_n_weights = tuple([cls.add_nodes(x, y, height-1, (z*weights_parent[0], w*weights_parent[1])) for x,y,z,w in zip(firstconns, secondconns, firstweights, secondweights)])
+        conns = tuple([None if not item else item[0] for item in conns_n_weights])
+        weights_from_children = tuple([0 if not item else item[1] for item in conns_n_weights])
         nonzero = next((x for x in weights_from_children if x), 1)
         normelems = tuple([weight / nonzero for weight in weights_from_children])
-        
         node = cls.cache_node(conns, normelems)
         return (node, nonzero)
 
@@ -82,7 +77,6 @@ class qvector:
             return second
         if not second.root:
             return first
-        # TODO: nuke first and second
         # Used for debugging the add_nodes func, not needed for sim
         new_node, norm = cls.add_nodes(first.root, second.root, first.height, (first.weight,second.weight))
         return cls(new_node, norm, first.height)
@@ -92,9 +86,9 @@ class qvector:
     def mult_nodes(cls, first: node, second: node, height: int, weight_from_parent: float) -> node:
         if not first or not second:
             return (None, 0)
-        newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,2),(0,0))])
-        newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,3),(1,1))])
         if height <= 1:
+            newweightsleft = tuple([first.weights[x]*second.weights[y] for x,y in zip((0,2),(0,0))])
+            newweightsright = tuple([first.weights[x]*second.weights[y] for x,y in zip((1,3),(1,1))])
             retweights = tuple([x+y for x,y in zip(newweightsleft, newweightsright)])
             nonzero = next((x for x in retweights if x), 1)
             normelems = tuple([weight / nonzero for weight in retweights])
@@ -134,8 +128,8 @@ class qvector:
                 nonzero = 0
             else:
                 nonzero = weight0 if weight0 != 0 else weight1 #Factor for propagation
-                normelems = (weight0/nonzero, weight1/nonzero) #Adjust elements
-                node = qvector.node((None, None), normelems)  # Create a leaf node from every pair.
+                norm_elems = (weight0/nonzero, weight1/nonzero) #Adjust elements
+                node = qvector.node((None, None), norm_elems)  # Create a leaf node from every pair.
                 copy = next((c1_elem for c1_elem in c1 if node == c1_elem), None) #This copies an existing node if it is equal to the one we just created?
                 if copy is not None:
                     node = copy
@@ -143,6 +137,13 @@ class qvector:
                     c1.add(node)
             q.put((node, nonzero))
 
+        qvector.merge_tree(q, c1)
+        (root, weight) = q.get()
+
+        return qvector(root, weight, height)
+
+    @staticmethod
+    def merge_tree(q, c1):
         while q.qsize() > 1:
             node0 = q.get()
             node1 = q.get()
@@ -152,19 +153,16 @@ class qvector:
                 qbc = [None, 0] #qbc will be the next node of one height up?
             else:
                 nonzero = next((x for x in weights if x), None)
-                normelems = tuple([weight / nonzero for weight in weights])
-                qnodeinner = qvector.node(nodes, normelems) #New node
+                norm_elems = tuple([weight / nonzero for weight in weights])
+                qnode_inner = qvector.node(nodes, norm_elems) #New node
                 # TODO: change to something better than O(n) (hash map eq.)
-                copyinner = next((c1_elem for c1_elem in c1 if qnodeinner == c1_elem), None) #Check if new node is equivalent to existing one
-                if copyinner is not None:
-                    qnodeinner = copyinner
+                copy_inner = next((c1_elem for c1_elem in c1 if qnode_inner == c1_elem), None) #Check if new node is equivalent to existing one
+                if copy_inner is not None:
+                    qnode_inner = copy_inner
                 else:
-                    c1.add(qnodeinner)
-                qbc = [qnodeinner, nonzero]
+                    c1.add(qnode_inner)
+                qbc = [qnode_inner, nonzero]
             q.put(qbc)
-        (root, weight) = q.get()
-
-        return qvector(root, weight, height)
 
     # returns an array of the values in the leaf nodes.
     # Usage of queue class because its operations put()and get() have-
@@ -223,47 +221,6 @@ class qvector:
         res = [abs(x)**2 for x in vector]
         return res
 
-    def measureSingle(self, qubit): #Not tested much, but also not necessary?
-        import random
-        def collapse(outcome, normalization):
-            if outcome:
-                not_outcome = 0
-            else:
-                not_outcome = 1
-
-            q = LifoQueue()
-            q.put((self.root , 0)) # Second part of tuple is the current qubit ( depth ). Starts q_0
-
-            while q.qsize() != 0:
-                (node,depth) = q.get()
-                if(depth < qubit):
-                    for i in [0,1]:
-                        q.add((node.conns(i), depth + 1))
-                else:
-                    node.conns[not_outcome] = None #Why are these touples again? Isn't that kind of annoying
-                    node.weights[not_outcome] = 0
-                    node.weights[outcome] /= normalization
-
-        if qubit > self.height:
-            raise ValueError("The qubit ", qubit, "does not exist in the vector of height ", self.height)
-
-        size = 1 << self.height
-        sub_vectors = 1 << (qubit + 1)
-        sub_vector_size = size//sub_vectors
-        probability_zero = 0
-        for i in range(sub_vectors//2): #This can be done in parallell?
-            for j in range(sub_vector_size):
-                probability_zero += self.get_element(i*sub_vector_size*2+j)**2 #Is the method in the paper more efficient?
-                #probability_one += self.get_element(i*sub_vector_size*2+j+sub_vector_size)**2 #Not needed because = 1 - probability_zero ?
-
-        random = random.random() #Float between 0 and 1
-        if random <= probability_zero:
-            collapse(0, math.sqrt(probability_zero)) # Should we check if the vector is still normalized for testing purposes?
-            return 0 #No need to return?
-        else:
-            collapse(1, math.sqrt(1-probability_zero))
-            return 1 #No need to return?
-
     def number_of_nodes(self):
         "Returns the number of unique nodes in the tree"
         # LIFO queue to store nodes to be traversed
@@ -303,10 +260,3 @@ def pairwise(iterable):
     # "s -> (s0, s1), (s2, s3), (s4, s5), ..."
     a = iter(iterable)
     return zip(a, a)
-
-
-# ---------can be removed - for testing purposes-------------
-if __name__ == '__main__':
-    tree = qvector.to_tree([1, 2, 4, 8, 0, 0, 0, 0])
-    vector = tree.to_vector()
-    print(vector)
